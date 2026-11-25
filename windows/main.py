@@ -45,6 +45,17 @@ def release_all(pad):
     pad.right_trigger(value=0)
     pad.update()
 
+def parse_input(data):
+    """Validate an input message and return normalized button/axis containers."""
+    if not isinstance(data, dict) or data.get("version") != 1 or data.get("type") != "input":
+        return None
+    buttons_data = data.get("buttons", [])
+    axes = data.get("axes", {})
+    if not isinstance(buttons_data, list) or not isinstance(axes, dict):
+        return None
+    buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
+    return buttons, axes
+
 def send_json(sock, address, payload):
     try:
         sock.sendto(json.dumps(payload, separators=(",", ":")).encode("utf-8"), address)
@@ -99,14 +110,10 @@ def main():
                     print("\nTeléfono conectado:", address[0])
                 last_sender = address[0]
                 continue
-            if data.get("type") != "input":
+            parsed = parse_input(data)
+            if parsed is None:
                 continue
-
-            buttons_data = data.get("buttons", [])
-            axes = data.get("axes", {})
-            if not isinstance(buttons_data, list) or not isinstance(axes, dict):
-                continue
-            buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
+            buttons, axes = parsed
             if pad is not None:
                 for name, enum_name in BUTTONS.items():
                     button = getattr(vg.XUSB_BUTTON, enum_name)
