@@ -2,6 +2,7 @@ import json
 import math
 import secrets
 import socket
+import subprocess
 import sys
 import time
 
@@ -134,6 +135,37 @@ def apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboar
     return previous_keyboard
 
 
+def show_network_addresses():
+    """Show IPv4 addresses reported by Windows so the phone can target this PC."""
+    try:
+        result = subprocess.run(
+            ["ipconfig"], capture_output=True, text=True, errors="replace",
+            timeout=5, check=False
+        )
+        lines = result.stdout.splitlines()
+        matches = []
+        for index, line in enumerate(lines):
+            if "IPv4" in line or "IPv4" in line.upper():
+                adapter = ""
+                for previous_line in reversed(lines[:index]):
+                    candidate = previous_line.strip()
+                    if candidate and (candidate.endswith(":") or candidate.endswith(":")):
+                        adapter = candidate
+                        break
+                matches.append((adapter, line.strip()))
+        if matches:
+            print("\\nDirecciones IPv4 detectadas en Windows:")
+            for adapter, address_line in matches:
+                if adapter:
+                    print(" ", adapter)
+                print("   ", address_line)
+            print("Usa la IPv4 del adaptador por el que está conectado el teléfono.")
+        else:
+            print("\\nNo se detectaron IPv4 automáticamente. Ejecuta ipconfig en Windows.")
+    except (OSError, subprocess.SubprocessError):
+        print("\\nNo se pudo consultar ipconfig. Ejecuta ipconfig en Windows.")
+
+
 def send_json(sock, address, payload):
     try:
         sock.sendto(json.dumps(payload, separators=(",", ":")).encode("utf-8"), address)
@@ -174,8 +206,8 @@ def main():
     print("Nexora Gamepad escucha en UDP", PORT)
     print("Código de emparejamiento (introdúcelo en Android):", pairing_code)
     print("Hasta cuatro teléfonos pueden usar el mismo código y quedar emparejados hasta reiniciar el receptor.")
-    print("Busca la IPv4 del PC en Configuración > Red e Internet > Wi-Fi.")
-    print("Introduce esa IP en Android y pulsa CONECTAR.")
+    show_network_addresses()
+    print("Introduce en Android la IPv4 del adaptador que comparte red con el teléfono.")
     print("Permite el acceso solo en redes privadas si Firewall lo solicita.")
     print("No expongas este puerto a Internet. Ctrl+C para salir.")
 
