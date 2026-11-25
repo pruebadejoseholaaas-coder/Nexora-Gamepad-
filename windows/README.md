@@ -6,7 +6,7 @@ Receptor UDP local y puente de entrada a un mando virtual XInput.
 - Windows 10/11 de 64 bits.
 - Teléfono y PC en la misma red Wi-Fi.
 - Para ejecutar desde código: Python 3.11 o posterior.
-- Para que los juegos detecten XInput se requiere un controlador virtual compatible con `vgamepad`. No instales drivers desde páginas de descargas no verificadas.
+- Para que los juegos detecten XInput se requiere un controlador virtual compatible con `vgamepad`. El backend tradicional de ViGEmBus está retirado y archivado; no vamos a incluir ni instalar ese controlador automáticamente. Antes de recomendar un backend para la versión final, comprobaremos su mantenimiento, procedencia y compatibilidad con Windows 11. Mientras tanto, el receptor puede compilar y funcionar en modo diagnóstico si el backend no está disponible.
 
 ## Uso
 1. Ejecuta `NexoraGamepad.exe` o `python main.py`.
