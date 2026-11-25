@@ -1,6 +1,9 @@
 package com.nexora.gamepad
 
 import android.app.Activity
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.Bundle
 import android.os.Build
 import android.os.VibrationEffect
@@ -8,6 +11,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -17,170 +21,166 @@ import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.SocketTimeoutException
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import kotlin.math.min
 
 class MainActivity : Activity() {
-    private var socket: DatagramSocket? = null
-    private var host = "192.168.1.100"
     private val port = 26760
+    @Volatile private var host = "192.168.1.100"
+    @Volatile private var connected = false
+    @Volatile private var running = false
+    private var socket: DatagramSocket? = null
+    private var sender: ScheduledExecutorService? = null
+    private val lock = Any()
     private val pressed = mutableSetOf<String>()
+    private val axes = mutableMapOf("leftX" to 0.0, "leftY" to 0.0, "rightX" to 0.0, "rightY" to 0.0, "leftTrigger" to 0.0, "rightTrigger" to 0.0)
     private lateinit var status: TextView
     private lateinit var ipField: EditText
+    private lateinit var connectButton: Button
+    private var haptics = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.decorView.systemUiVisibility =
-            5894 or 1024 or 512 or 4096
+        window.decorView.systemUiVisibility = 5894 or 1024 or 512 or 4096
+        buildInterface()
+    }
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(18, 12, 18, 12)
-            setBackgroundColor(0xFF10131B.toInt())
-        }
+    private fun buildInterface() {
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14, 8, 14, 8); setBackgroundColor(Color.rgb(12, 16, 25)) }
+        val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        header.addView(TextView(this).apply { text = "NEXORA GAMEPAD"; textSize = 20f; setTextColor(Color.WHITE) }, LinearLayout.LayoutParams(0, 44, 1f))
+        status = TextView(this).apply { text = "● SIN CONEXIÓN"; textSize = 12f; setTextColor(Color.rgb(255, 190, 90)) }
+        header.addView(status); root.addView(header)
 
-        val title = TextView(this).apply {
-            text = "NEXORA GAMEPAD"
-            textSize = 24f
-            setTextColor(0xFFFFFFFF.toInt())
-            gravity = Gravity.CENTER
-        }
-        root.addView(title)
+        val connection = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        ipField = EditText(this).apply { setSingleLine(true); setText(host); hint = "IP local de tu PC"; textSize = 14f; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY) }
+        connection.addView(ipField, LinearLayout.LayoutParams(0, 46, 1f))
+        connectButton = Button(this).apply { text = "CONECTAR"; setOnClickListener { connectToPc() } }
+        connection.addView(connectButton); root.addView(connection)
+        root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 11f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
 
-        val connection = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        ipField = EditText(this).apply {
-            setSingleLine(true)
-            setText(host)
-            hint = "IP local de tu PC"
-            setTextColor(0xFFFFFFFF.toInt())
-            setHintTextColor(0xFFAAAAAA.toInt())
+        val shoulders = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        listOf(Triple("L1","LB",1f), Triple("L2","LT",1f), Triple("SELECT","BACK",1f), Triple("START","START",1f), Triple("R2","RT",1f), Triple("R1","RB",1f)).forEach {
+            shoulders.addView(controlButton(it.first,it.second), LinearLayout.LayoutParams(0,44,it.third))
         }
-        connection.addView(ipField, LinearLayout.LayoutParams(0, 52, 1f))
-        val connect = Button(this).apply {
-            text = "Conectar"
-            setOnClickListener {
-                host = ipField.text.toString().trim()
-                status.text = "Destino: $host:$port"
-                sendState()
-            }
-        }
-        connection.addView(connect)
-        root.addView(connection)
+        root.addView(shoulders)
 
-        status = TextView(this).apply {
-            text = "Introduce la IP local que muestra Nexora en Windows"
-            textSize = 13f
-            setTextColor(0xFFB9C3D5.toInt())
-            gravity = Gravity.CENTER
-        }
-        root.addView(status)
+        val game = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+        left.addView(JoystickView("leftX","leftY"), LinearLayout.LayoutParams(180,180))
+        left.addView(dpad(), LinearLayout.LayoutParams(180,112))
+        game.addView(left, LinearLayout.LayoutParams(0,0,1f))
 
-        val controls = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        val dpad = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-        dpad.addView(controlButton("↑", "UP"))
-        val horizontal = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        horizontal.addView(controlButton("←", "LEFT"))
-        horizontal.addView(controlButton("↓", "DOWN"))
-        horizontal.addView(controlButton("→", "RIGHT"))
-        dpad.addView(horizontal)
-        controls.addView(dpad, LinearLayout.LayoutParams(0, 220, 1f))
+        val center = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+        center.addView(controlButton("L3","LS"), LinearLayout.LayoutParams(70,44))
+        center.addView(JoystickView("rightX","rightY"), LinearLayout.LayoutParams(145,145))
+        center.addView(controlButton("R3","RS"), LinearLayout.LayoutParams(70,44))
+        game.addView(center, LinearLayout.LayoutParams(0,0,1f))
 
-        val actions = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-        val top = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        top.addView(controlButton("Y", "Y"))
-        top.addView(controlButton("X", "X"))
-        actions.addView(top)
-        val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        bottom.addView(controlButton("B", "B"))
-        bottom.addView(controlButton("A", "A"))
-        actions.addView(bottom)
-        controls.addView(actions, LinearLayout.LayoutParams(0, 220, 1f))
-        root.addView(controls)
+        val face = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+        val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(controlButton("Y","Y"), LinearLayout.LayoutParams(68,60))
+        val row2 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row2.addView(controlButton("X","X"), LinearLayout.LayoutParams(68,60)); row2.addView(controlButton("B","B"), LinearLayout.LayoutParams(68,60))
+        val row3 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row3.addView(controlButton("A","A"), LinearLayout.LayoutParams(68,60))
+        face.addView(row1); face.addView(row2); face.addView(row3)
+        game.addView(face, LinearLayout.LayoutParams(0,0,1f))
+        root.addView(game, LinearLayout.LayoutParams(-1,0,1f))
 
-        val note = TextView(this).apply {
-            text = "MVP inicial • Wi-Fi local • Vibración táctil del teléfono"
-            textSize = 12f
-            setTextColor(0xFF8E9AAF.toInt())
-            gravity = Gravity.CENTER
-        }
-        root.addView(note)
+        val footer = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        footer.addView(Button(this).apply { text = "VIBRACIÓN: ACTIVADA"; setOnClickListener { haptics = !haptics; text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
+        footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
+        root.addView(footer)
         setContentView(root)
     }
 
-    private fun controlButton(label: String, key: String): Button {
-        return Button(this).apply {
-            text = label
-            textSize = 18f
-            setOnTouchListener { _, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        pressed.add(key)
-                        vibrateTap()
-                        sendState()
-                        true
-                    }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        pressed.remove(key)
-                        sendState()
-                        true
-                    }
-                    else -> true
-                }
+    private fun dpad(): View {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+        box.addView(controlButton("↑","UP"), LinearLayout.LayoutParams(56,36))
+        val row = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        listOf(Triple("←","LEFT",0),Triple("↓","DOWN",1),Triple("→","RIGHT",2)).forEach { row.addView(controlButton(it.first,it.second), LinearLayout.LayoutParams(56,36)) }
+        box.addView(row); return box
+    }
+
+    private fun controlButton(label: String, key: String) = Button(this).apply {
+        text = label; textSize = 13f
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) { pressed.add(key) }; vibrateTap(); true }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { pressed.remove(key) }; true }
+                else -> true
             }
         }
     }
 
+    private inner class JoystickView(private val xName: String, private val yName: String) : View(this@MainActivity) {
+        private val base = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(37,48,67) }
+        private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(100,125,155); style = Paint.Style.STROKE; strokeWidth = 5f }
+        private val knob = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(30,170,220) }
+        private var nx = 0f; private var ny = 0f
+        override fun onDraw(canvas: Canvas) {
+            val cx = width/2f; val cy = height/2f; val r = min(width,height)*0.39f
+            canvas.drawCircle(cx,cy,r,base); canvas.drawCircle(cx,cy,r,ring)
+            canvas.drawCircle(cx+nx*r*0.68f,cy+ny*r*0.68f,r*0.36f,knob)
+        }
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            val cx=width/2f; val cy=height/2f; val r=min(width,height)*0.39f
+            if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) { nx=0f; ny=0f }
+            else { nx=((event.x-cx)/r).coerceIn(-1f,1f); ny=((event.y-cy)/r).coerceIn(-1f,1f) }
+            synchronized(lock) { axes[xName]=nx.toDouble(); axes[yName]=ny.toDouble() }
+            invalidate(); return true
+        }
+    }
+
+    private fun connectToPc() {
+        val candidate=ipField.text.toString().trim()
+        try { InetAddress.getByName(candidate) } catch (_: Exception) { status.text="● IP NO VÁLIDA"; return }
+        disconnect(null); host=candidate; running=true
+        try { socket=DatagramSocket().apply { soTimeout=500 } } catch (_: Exception) { running=false; status.text="● ERROR AL ABRIR RED"; return }
+        status.text="● BUSCANDO PC..."; connectButton.text="BUSCANDO..."
+        thread(name="Nexora-Receiver") {
+            val buffer=ByteArray(1024)
+            while (running) {
+                try {
+                    val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
+                    val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
+                    if (response.optString("type")=="hello_ack") {
+                        connected=true
+                        val peer=packet.address.hostAddress ?: host
+                        runOnUiThread { status.text="● CONECTADO A "+peer; status.setTextColor(Color.rgb(90,220,145)); connectButton.text="CONECTADO" }
+                    }
+                } catch (_: SocketTimeoutException) { } catch (_: Exception) { if (running) runOnUiThread { status.text="● ERROR DE RED" } }
+            }
+        }
+        sender=Executors.newSingleThreadScheduledExecutor()
+        sender?.scheduleAtFixedRate({ if (running) { if (connected) sendState() else sendHello() } },0,33,TimeUnit.MILLISECONDS)
+    }
+
+    private fun sendHello() = sendJson(JSONObject().put("type","hello").put("version",1))
+    private fun sendState() {
+        val b: List<String>; val a: Map<String,Double>
+        synchronized(lock) { b=pressed.toList(); a=axes.toMap() }
+        val aj=JSONObject(); a.forEach { (k,v)->aj.put(k,v) }
+        sendJson(JSONObject().put("type","input").put("version",1).put("buttons",JSONArray(b)).put("axes",aj))
+    }
+    private fun sendJson(json: JSONObject) {
+        val bytes=json.toString().toByteArray(Charsets.UTF_8)
+        try { val address=InetAddress.getByName(host); socket?.let { it.send(DatagramPacket(bytes,bytes.size,address,port)) } } catch (_: Exception) { }
+    }
+    private fun disconnect(message: String?) {
+        running=false; connected=false; sender?.shutdownNow(); sender=null; socket?.close(); socket=null
+        synchronized(lock) { pressed.clear(); axes.keys.forEach { axes[it]=0.0 } }
+        if (message!=null && ::status.isInitialized) { status.text="● "+message; status.setTextColor(Color.rgb(255,190,90)); connectButton.text="CONECTAR" }
+    }
+    @Suppress("DEPRECATION")
     private fun vibrateTap() {
+        if (!haptics) return
         try {
-            val vibrator = if (Build.VERSION.SDK_INT >= 31) {
-                getSystemService(VibratorManager::class.java).defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(VIBRATOR_SERVICE) as Vibrator
-            }
-            if (Build.VERSION.SDK_INT >= 26) {
-                vibrator.vibrate(VibrationEffect.createOneShot(18, 70))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(18)
-            }
+            val vibrator: Vibrator = if (Build.VERSION.SDK_INT>=31) getSystemService(VibratorManager::class.java).defaultVibrator else getSystemService(VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT>=26) vibrator.vibrate(VibrationEffect.createOneShot(18,65)) else vibrator.vibrate(18)
         } catch (_: Exception) { }
     }
-
-    private fun sendState() {
-        val packet = JSONObject().apply {
-            put("type", "input")
-            put("version", 1)
-            put("buttons", JSONArray(pressed.toList()))
-            put("axes", JSONObject().apply {
-                put("leftX", 0.0); put("leftY", 0.0)
-                put("rightX", 0.0); put("rightY", 0.0)
-                put("leftTrigger", 0.0); put("rightTrigger", 0.0)
-            })
-        }.toString().toByteArray(Charsets.UTF_8)
-
-        thread {
-            try {
-                if (socket == null || socket!!.isClosed) socket = DatagramSocket()
-                val address = InetAddress.getByName(host)
-                socket!!.send(DatagramPacket(packet, packet.size, address, port))
-            } catch (e: Exception) {
-                runOnUiThread { status.text = "No se pudo enviar: revisa la IP y el Wi-Fi" }
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        socket?.close()
-        super.onDestroy()
-    }
+    override fun onDestroy() { disconnect(null); super.onDestroy() }
 }
