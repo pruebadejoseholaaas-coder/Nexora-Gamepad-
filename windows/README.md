@@ -10,7 +10,7 @@ Receptor UDP local y puente de entrada a un mando virtual XInput o teclado.
 
 ## Uso
 1. Ejecuta `NexoraGamepad.exe` o `python main.py`.
-2. El receptor muestra un código temporal de seis dígitos.
+2. El receptor muestra un código temporal de seis dígitos. Puedes introducir el mismo código en hasta cuatro teléfonos.
 3. Si Windows Firewall pregunta, permite la comunicación solo en redes privadas.
 4. En el teléfono, selecciona Wi-Fi, USB o Bluetooth.
 5. Introduce en Android la IPv4 del adaptador de Windows correspondiente a esa conexión y el código de seis dígitos.
@@ -26,7 +26,7 @@ El nombre exacto del adaptador depende del controlador y de Windows. No uses la 
 
 ## Funciones
 - UDP en el puerto 26760, escuchando en las interfaces locales.
-- Código temporal de emparejamiento.
+- Código temporal de emparejamiento compartido por hasta cuatro teléfonos.
 - Controles XInput si existe un backend compatible.
 - Modo teclado opcional para PPSSPP.
 - Liberación de controles al perder el flujo de paquetes.
