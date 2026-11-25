@@ -9,6 +9,7 @@ Convierte un teléfono Android en un mando táctil para Windows mediante la red 
 - Conexión UDP con saludo, confirmación y detección de pérdida de respuesta.
 - Código de emparejamiento de seis dígitos generado por Windows.
 - Receptor Windows con mapeo a XInput y liberación automática de controles.
+- Modo teclado opcional para PPSSPP cuando no hay controlador virtual.
 - Compilaciones APK y EXE en GitHub Actions.
 
 ## Componentes
@@ -18,7 +19,7 @@ Convierte un teléfono Android en un mando táctil para Windows mediante la red 
 - `.github/workflows/`: compilaciones y pruebas.
 
 ## Pendiente
-- Perfiles configurables y asignación de botones para PPSSPP y otros juegos.
+- Perfiles configurables dentro de Android y asignación visual de botones para otros juegos.
 - Vibración de retorno desde el juego de Windows al teléfono.
 - Mejoras adicionales al protocolo y pruebas de interoperabilidad.
 - Pruebas reales en hardware.
