@@ -2,6 +2,7 @@ package com.nexora.gamepad
 
 import android.app.Activity
 import android.graphics.Canvas
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
@@ -50,6 +51,7 @@ class MainActivity : Activity() {
     private var stickDeadzone = 0.08f
     private var transport = "WIFI"
     private lateinit var transportHelp: TextView
+    private val transportButtons = mutableMapOf<String, Button>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +90,7 @@ class MainActivity : Activity() {
         val transportRow = LinearLayout(this).apply { gravity = Gravity.CENTER }
         val transportOptions = listOf("WIFI" to "WI-FI", "USB" to "USB", "BLUETOOTH" to "BLUETOOTH")
         transportOptions.forEach { (key, label) ->
-            transportRow.addView(Button(this).apply {
+            val option = Button(this).apply {
                 text = label
                 textSize = 10f
                 setOnClickListener {
@@ -96,7 +98,9 @@ class MainActivity : Activity() {
                     getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("transport", transport).apply()
                     updateTransportHelp()
                 }
-            }, LinearLayout.LayoutParams(0, 34, 1f))
+            }
+            transportButtons[key] = option
+            transportRow.addView(option, LinearLayout.LayoutParams(0, 34, 1f))
         }
         root.addView(transportRow)
         transportHelp = TextView(this).apply { textSize = 9f; setTextColor(Color.rgb(150,190,220)); gravity = Gravity.CENTER }
@@ -176,6 +180,14 @@ class MainActivity : Activity() {
             "USB" -> "USB: conecta el cable y activa Anclaje USB en Android."
             "BLUETOOTH" -> "Bluetooth: empareja el PC y activa Anclaje Bluetooth."
             else -> "Wi-Fi: ambos equipos deben usar la misma red local."
+        }
+        transportButtons.forEach { (key, button) ->
+            val selected = key == transport
+            button.backgroundTintList = ColorStateList.valueOf(
+                if (selected) Color.rgb(30, 115, 170) else Color.rgb(45, 53, 68)
+            )
+            button.setTextColor(Color.WHITE)
+            button.alpha = if (selected) 1.0f else 0.78f
         }
     }
     private fun dpad(): View {
