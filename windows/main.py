@@ -100,7 +100,20 @@ def parse_input(data):
     if not isinstance(buttons_data, list) or not isinstance(axes, dict):
         return None
     buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
+    allowed_axes = {"leftX", "leftY", "rightX", "rightY", "leftTrigger", "rightTrigger"}
+    axes = {name: value for name, value in axes.items() if name in allowed_axes}
     return buttons, axes
+
+
+def expire_inactive_clients(client_seen, client_states, paired_ips, now, timeout=PACKET_TIMEOUT_SECONDS):
+    """Remove stale phones and return their IPs so callers can refresh controls."""
+    expired = [ip for ip, seen in client_seen.items() if now - seen > timeout]
+    for ip in expired:
+        client_seen.pop(ip, None)
+        client_states.pop(ip, None)
+        paired_ips.discard(ip)
+    return expired
+
 
 def merge_client_states(client_states):
     if not client_states:
@@ -220,11 +233,8 @@ def main():
                 raw, address = sock.recvfrom(MAX_PACKET_BYTES)
             except socket.timeout:
                 now = time.monotonic()
-                expired = [ip for ip, seen in client_seen.items() if now - seen > PACKET_TIMEOUT_SECONDS]
+                expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
                 for ip in expired:
-                    client_seen.pop(ip, None)
-                    client_states.pop(ip, None)
-                    paired_ips.discard(ip)
                     print("\nTeléfono desconectado:", ip)
                 if expired:
                     buttons, axes = merge_client_states(client_states)
@@ -245,11 +255,8 @@ def main():
             if not isinstance(data, dict) or data.get("version") != 1:
                 continue
             now = time.monotonic()
-            expired = [ip for ip, seen in client_seen.items() if now - seen > PACKET_TIMEOUT_SECONDS]
+            expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
             for ip in expired:
-                client_seen.pop(ip, None)
-                client_states.pop(ip, None)
-                paired_ips.discard(ip)
                 print("\nTeléfono desconectado:", ip)
             if expired:
                 buttons, axes = merge_client_states(client_states)
