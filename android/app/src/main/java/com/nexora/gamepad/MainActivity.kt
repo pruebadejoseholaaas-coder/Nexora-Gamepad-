@@ -47,6 +47,9 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.decorView.systemUiVisibility = 5894 or 1024 or 512 or 4096
+        val preferences = getSharedPreferences("nexora_settings", MODE_PRIVATE)
+        host = preferences.getString("pc_ip", host) ?: host
+        haptics = preferences.getBoolean("haptics", true)
         buildInterface()
     }
 
@@ -91,7 +94,7 @@ class MainActivity : Activity() {
         root.addView(game, LinearLayout.LayoutParams(-1,0,1f))
 
         val footer = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        footer.addView(Button(this).apply { text = "VIBRACIÓN: ACTIVADA"; setOnClickListener { haptics = !haptics; text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
+        footer.addView(Button(this).apply { text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA"; setOnClickListener { haptics = !haptics; getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply(); text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
         setContentView(root)
@@ -138,7 +141,9 @@ class MainActivity : Activity() {
     private fun connectToPc() {
         val candidate=ipField.text.toString().trim()
         try { InetAddress.getByName(candidate) } catch (_: Exception) { status.text="● IP NO VÁLIDA"; return }
-        disconnect(null); host=candidate; running=true
+        disconnect(null); host=candidate
+        getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("pc_ip", host).apply()
+        running=true
         try { socket=DatagramSocket().apply { soTimeout=500 } } catch (_: Exception) { running=false; status.text="● ERROR AL ABRIR RED"; return }
         status.text="● BUSCANDO PC..."; connectButton.text="BUSCANDO..."
         thread(name="Nexora-Receiver") {
