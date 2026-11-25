@@ -35,6 +35,18 @@ class ProtocolTests(unittest.TestCase):
         self.assertIsNone(main.parse_input({"type": "input", "version": 1, "buttons": "A"}))
         self.assertIsNone(main.parse_input({"type": "input", "version": 1, "axes": []}))
 
+    def test_keyboard_fallback_maps_buttons_and_sticks(self):
+        keys = main.keyboard_keys(
+            {"A", "UP", "LB"},
+            {"leftX": -0.8, "leftY": 0.0, "rightX": 0.7,
+             "rightY": 0.0, "leftTrigger": 0.0, "rightTrigger": 0.9},
+        )
+        self.assertEqual(keys, {0x4A, 0x26, 0x51, 0x41, 0x48, 0x32})
+
+    def test_keyboard_fallback_has_deadzone_threshold(self):
+        keys = main.keyboard_keys(set(), {"leftX": 0.4, "leftY": -0.2})
+        self.assertEqual(keys, set())
+
 
 if __name__ == "__main__":
     unittest.main()
