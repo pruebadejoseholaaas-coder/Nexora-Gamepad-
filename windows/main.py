@@ -114,9 +114,14 @@ def main():
             if not isinstance(data, dict) or data.get("version") != 1:
                 continue
             if data.get("type") == "hello":
+                if data.get("code") != pairing_code:
+                    continue
+                if paired_ip is None:
+                    paired_ip = address[0]
+                    print("\nTeléfono emparejado:", paired_ip)
+                if address[0] != paired_ip:
+                    continue
                 send_json(sock, address, {"type": "hello_ack", "version": 1, "name": "Nexora Gamepad"})
-                if last_sender != address[0]:
-                    print("\nTeléfono conectado:", address[0])
                 last_sender = address[0]
                 continue
             if address[0] != paired_ip or data.get("code") != pairing_code:
