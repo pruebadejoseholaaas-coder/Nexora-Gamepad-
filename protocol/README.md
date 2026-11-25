@@ -3,17 +3,18 @@
 Versión 1: UDP dentro de la red local, puerto 26760.
 
 ## Mensajes Android → Windows
-- `hello`: solicita conexión.
-- `input`: estado completo de botones y ejes.
+- `hello`: solicita emparejamiento; incluye `code` de seis dígitos.
+- `input`: estado completo de botones y ejes; incluye el mismo `code`.
 
 ## Mensajes Windows → Android
-- `hello_ack`: confirma el saludo inicial.
+- `hello_ack`: confirma emparejamiento.
 - `input_ack`: confirma que el receptor sigue procesando controles.
 
 ## Entrada
 El paquete `input` contiene:
-- `buttons`: nombres de botones activos.
-- `axes`: valores normalizados entre -1 y 1 para sticks; los gatillos usan 0 a 1.
+- `buttons`: botones activos.
+- `axes`: sticks normalizados entre -1 y 1; gatillos entre 0 y 1.
+- `code`: código temporal de emparejamiento.
 
 Ejemplo:
 
@@ -21,6 +22,7 @@ Ejemplo:
 {
   "type": "input",
   "version": 1,
+  "code": "123456",
   "buttons": ["A", "LB"],
   "axes": {
     "leftX": 0.0,
@@ -34,6 +36,6 @@ Ejemplo:
 ```
 
 ## Seguridad y límites
-No envíes datos personales. El protocolo no tiene autenticación criptográfica todavía: úsalo solo en una red local de confianza y nunca reenvíes el puerto hacia Internet.
+El receptor genera un código aleatorio temporal y autoriza la primera IP que lo presenta hasta reiniciar el servidor. El código se transmite sin cifrado; es una barrera básica para redes locales de confianza, no autenticación criptográfica. No reenvíes el puerto hacia Internet.
 
-La vibración de retorno requerirá un canal de eventos independiente y soporte de lectura de force feedback en Windows; todavía no forma parte de esta versión.
+La vibración de retorno y los perfiles configurables todavía no forman parte de este protocolo.
