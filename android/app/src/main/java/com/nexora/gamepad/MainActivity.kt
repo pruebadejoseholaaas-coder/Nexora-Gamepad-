@@ -35,6 +35,8 @@ class MainActivity : Activity() {
     @Volatile private var host = "192.168.1.100"
     @Volatile private var connected = false
     @Volatile private var lastResponseAt = 0L
+    @Volatile private var lastHelloAt = 0L
+    @Volatile private var rejectedByServer = false
     @Volatile private var pairingCode = ""
     @Volatile private var running = false
     private var socket: DatagramSocket? = null
@@ -246,6 +248,8 @@ class MainActivity : Activity() {
         disconnect(null); host=candidate; pairingCode=enteredCode
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("pc_ip", host).apply()
         running=true
+        rejectedByServer=false
+        lastHelloAt=0L
         try { socket=DatagramSocket().apply { soTimeout=500 } } catch (_: Exception) { running=false; status.text="● ERROR AL ABRIR RED"; return }
         status.text="● BUSCANDO PC..."; connectButton.text="BUSCANDO..."
         thread(name="Nexora-Receiver") {
@@ -256,11 +260,14 @@ class MainActivity : Activity() {
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
                     if (packet.address.hostAddress == InetAddress.getByName(host).hostAddress) {
                         when (response.optString("type")) {
-                            "busy" -> runOnUiThread {
+                            "busy" -> {
+                                rejectedByServer = true
                                 connected = false
-                                status.text = "● LÍMITE DE TELÉFONOS ALCANZADO"
-                                status.setTextColor(Color.rgb(255, 150, 90))
-                                connectButton.text = "REINTENTAR"
+                                runOnUiThread {
+                                    status.text = "● LÍMITE DE TELÉFONOS ALCANZADO"
+                                    status.setTextColor(Color.rgb(255, 150, 90))
+                                    connectButton.text = "REINTENTAR"
+                                }
                             }
                             "hello_ack", "input_ack" -> {
                                 connected = true
@@ -284,7 +291,7 @@ class MainActivity : Activity() {
                     connected = false
                     runOnUiThread { status.text = "● PC SIN RESPUESTA"; status.setTextColor(Color.rgb(255,190,90)); connectButton.text = "REINTENTANDO..." }
                 }
-                if (connected) sendState() else sendHello()
+                if (connected) sendState() else if (!rejectedByServer && System.currentTimeMillis() - lastHelloAt >= 700) { lastHelloAt = System.currentTimeMillis(); sendHello() }
             }
         },0,33,TimeUnit.MILLISECONDS)
     }
@@ -301,7 +308,7 @@ class MainActivity : Activity() {
         try { val address=InetAddress.getByName(host); socket?.let { it.send(DatagramPacket(bytes,bytes.size,address,port)) } } catch (_: Exception) { }
     }
     private fun disconnect(message: String?) {
-        running=false; connected=false; sender?.shutdownNow(); sender=null; socket?.close(); socket=null
+        running=false; connected=false; rejectedByServer=false; sender?.shutdownNow(); sender=null; socket?.close(); socket=null
         synchronized(lock) { pressed.clear(); axes.keys.forEach { axes[it]=0.0 } }
         if (message!=null && ::status.isInitialized) { status.text="● "+message; status.setTextColor(Color.rgb(255,190,90)); connectButton.text="CONECTAR" }
     }
