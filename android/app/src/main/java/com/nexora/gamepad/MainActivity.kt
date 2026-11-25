@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private val port = 26760
     @Volatile private var host = "192.168.1.100"
     @Volatile private var connected = false
+    @Volatile private var lastResponseAt = 0L
     @Volatile private var running = false
     private var socket: DatagramSocket? = null
     private var sender: ScheduledExecutorService? = null
@@ -146,8 +147,9 @@ class MainActivity : Activity() {
                 try {
                     val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
-                    if (response.optString("type")=="hello_ack") {
+                    if (response.optString("type")=="hello_ack" || response.optString("type")=="input_ack") {
                         connected=true
+                        lastResponseAt=System.currentTimeMillis()
                         val peer=packet.address.hostAddress ?: host
                         runOnUiThread { status.text="● CONECTADO A "+peer; status.setTextColor(Color.rgb(90,220,145)); connectButton.text="CONECTADO" }
                     }
@@ -155,7 +157,15 @@ class MainActivity : Activity() {
             }
         }
         sender=Executors.newSingleThreadScheduledExecutor()
-        sender?.scheduleAtFixedRate({ if (running) { if (connected) sendState() else sendHello() } },0,33,TimeUnit.MILLISECONDS)
+        sender?.scheduleAtFixedRate({
+            if (running) {
+                if (connected && System.currentTimeMillis() - lastResponseAt > 2500) {
+                    connected = false
+                    runOnUiThread { status.text = "● PC SIN RESPUESTA"; status.setTextColor(Color.rgb(255,190,90)); connectButton.text = "REINTENTANDO..." }
+                }
+                if (connected) sendState() else sendHello()
+            }
+        },0,33,TimeUnit.MILLISECONDS)
     }
 
     private fun sendHello() = sendJson(JSONObject().put("type","hello").put("version",1))
