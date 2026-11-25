@@ -4,6 +4,7 @@ import sys
 
 PORT = 26760
 HOST = "0.0.0.0"
+PACKET_TIMEOUT_SECONDS = 1.0
 
 try:
     import vgamepad as vg
@@ -23,6 +24,20 @@ BUTTONS = {
     "RIGHT": "XUSB_GAMEPAD_DPAD_RIGHT",
 }
 
+
+def release_all(pad):
+    """Return the virtual controller to a neutral state."""
+    if pad is None:
+        return
+    for enum_name in BUTTONS.values():
+        pad.release_button(button=getattr(vg.XUSB_BUTTON, enum_name))
+    pad.left_joystick(x_value=0, y_value=0)
+    pad.right_joystick(x_value=0, y_value=0)
+    pad.left_trigger(value=0)
+    pad.right_trigger(value=0)
+    pad.update()
+
+
 def main():
     pad = None
     if GAMEPAD_AVAILABLE:
@@ -37,20 +52,38 @@ def main():
         print("La biblioteca vgamepad no está disponible; modo de diagnóstico.")
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(PACKET_TIMEOUT_SECONDS)
     sock.bind((HOST, PORT))
     print(f"Nexora Gamepad escucha en el puerto UDP {PORT}.")
     print("Busca la IP local de este PC y escríbela en Android.")
+    print("Si el teléfono deja de enviar datos, los controles se liberan automáticamente.")
     print("Pulsa Ctrl+C para cerrar.")
 
     previous = set()
+    last_sender = None
     while True:
-        raw, address = sock.recvfrom(4096)
+        try:
+            raw, address = sock.recvfrom(4096)
+        except socket.timeout:
+            if previous or last_sender is not None:
+                release_all(pad)
+                previous.clear()
+                last_sender = None
+                print("\nConexión inactiva: controles liberados. Esperando teléfono...")
+            continue
+
         try:
             data = json.loads(raw.decode("utf-8"))
+            if not isinstance(data, dict):
+                continue
             if data.get("type") != "input" or data.get("version") != 1:
                 continue
-            buttons = set(data.get("buttons", []))
+            buttons_data = data.get("buttons", [])
             axes = data.get("axes", {})
+            if not isinstance(buttons_data, list) or not isinstance(axes, dict):
+                continue
+            buttons = {name for name in buttons_data if name in BUTTONS}
+
             if pad is not None:
                 for name, enum_name in BUTTONS.items():
                     button = getattr(vg.XUSB_BUTTON, enum_name)
@@ -77,10 +110,17 @@ def main():
                 pad.left_trigger(value=int(max(0.0, min(1.0, axis("leftTrigger"))) * 255))
                 pad.right_trigger(value=int(max(0.0, min(1.0, axis("rightTrigger"))) * 255))
                 pad.update()
+
             previous = buttons
-            print(f"Control recibido desde {address[0]}: {', '.join(sorted(buttons)) or 'sin botones'}", end="\r")
+            last_sender = address[0]
+            print(
+                f"Control recibido desde {address[0]}: "
+                f"{', '.join(sorted(buttons)) or 'sin botones'}",
+                end="\r",
+            )
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
             continue
+
 
 if __name__ == "__main__":
     try:
