@@ -1,14 +1,14 @@
 # Protocolo local
 
-Versión inicial: UDP sobre la red Wi-Fi local.
+Versión 1: UDP sobre la red Wi-Fi local.
 
-- Puerto inicial del receptor: UDP 26760.
+- Puerto del receptor: UDP 26760.
 - El teléfono envía paquetes JSON de estado de controles.
 - No se envían nombres, archivos, cuentas ni datos personales.
-- El receptor debe aceptar paquetes únicamente desde la LAN y mostrar el estado de conexión.
+- El receptor debe utilizarse solo dentro de la LAN; no reenvíes el puerto hacia Internet.
 - La vibración de retorno se definirá como mensaje independiente después de implementar y verificar la lectura de force feedback en Windows.
 
-Ejemplo de paquete de controles:
+Ejemplo de paquete:
 
 ```json
 {
