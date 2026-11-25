@@ -1,3 +1,4 @@
+import math
 import pathlib
 import sys
 import unittest
@@ -11,6 +12,8 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(main.clamp(2, -1, 1), 1)
         self.assertEqual(main.clamp(-2, -1, 1), -1)
         self.assertEqual(main.clamp("invalid", 0, 1), 0)
+        self.assertEqual(main.clamp(float("nan"), -1, 1), 0)
+        self.assertEqual(main.clamp(float("inf"), -1, 1), 0)
 
     def test_accepts_valid_input(self):
         parsed = main.parse_input({
