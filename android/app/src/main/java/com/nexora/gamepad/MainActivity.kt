@@ -48,6 +48,8 @@ class MainActivity : Activity() {
     private var haptics = true
     private var stickSensitivity = 1.0f
     private var stickDeadzone = 0.08f
+    private var transport = "WIFI"
+    private lateinit var transportHelp: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +59,7 @@ class MainActivity : Activity() {
         haptics = preferences.getBoolean("haptics", true)
         stickSensitivity = preferences.getFloat("stick_sensitivity", 1.0f)
         stickDeadzone = preferences.getFloat("stick_deadzone", 0.08f)
+        transport = preferences.getString("transport", "WIFI") ?: "WIFI"
         buildInterface()
     }
 
@@ -81,7 +84,24 @@ class MainActivity : Activity() {
             setHintTextColor(Color.LTGRAY)
         }
         root.addView(codeField, LinearLayout.LayoutParams(-1, 36))
-        root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 9f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
+        root.addView(TextView(this).apply { text = "Elige cómo conectar el teléfono al PC"; textSize = 10f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
+        val transportRow = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        val transportOptions = listOf("WIFI" to "WI-FI", "USB" to "USB", "BLUETOOTH" to "BLUETOOTH")
+        transportOptions.forEach { (key, label) ->
+            transportRow.addView(Button(this).apply {
+                text = label
+                textSize = 10f
+                setOnClickListener {
+                    transport = key
+                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("transport", transport).apply()
+                    updateTransportHelp()
+                }
+            }, LinearLayout.LayoutParams(0, 34, 1f))
+        }
+        root.addView(transportRow)
+        transportHelp = TextView(this).apply { textSize = 9f; setTextColor(Color.rgb(150,190,220)); gravity = Gravity.CENTER }
+        root.addView(transportHelp, LinearLayout.LayoutParams(-1, 28))
+        updateTransportHelp()
 
         val tuning = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val sensitivityLabel = TextView(this).apply { text = "Sensibilidad"; textSize = 11f; setTextColor(Color.WHITE) }
@@ -150,6 +170,14 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    private fun updateTransportHelp() {
+        if (!::transportHelp.isInitialized) return
+        transportHelp.text = when (transport) {
+            "USB" -> "USB: conecta el cable y activa Anclaje USB en Android."
+            "BLUETOOTH" -> "Bluetooth: empareja el PC y activa Anclaje Bluetooth."
+            else -> "Wi-Fi: ambos equipos deben usar la misma red local."
+        }
+    }
     private fun dpad(): View {
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         box.addView(controlButton("↑","UP"), LinearLayout.LayoutParams(48,30))
