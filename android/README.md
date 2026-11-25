@@ -26,7 +26,7 @@ En la pantalla principal puedes elegir el tipo de conexión. El selector guarda 
 Los nombres de los menús pueden variar según la marca y la versión de Android. USB y Bluetooth PAN son conexiones de red; no son modos USB HID ni Bluetooth HID.
 
 ## Emparejamiento
-El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en la app. La autorización actual se mantiene hasta reiniciar el receptor.
+El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en cada teléfono que quieras conectar. Se permiten hasta cuatro teléfonos por sesión y todos comparten el mismo mando del PC; los botones se combinan y los ejes se mezclan usando el valor de mayor magnitud.
 
 ## Controles
 - Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
