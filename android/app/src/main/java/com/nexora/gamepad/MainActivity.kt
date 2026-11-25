@@ -61,15 +61,15 @@ class MainActivity : Activity() {
     }
 
     private fun buildInterface() {
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(14, 8, 14, 8); setBackgroundColor(Color.rgb(12, 16, 25)) }
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(8, 4, 8, 4); setBackgroundColor(Color.rgb(12, 16, 25)) }
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(TextView(this).apply { text = "NEXORA GAMEPAD"; textSize = 20f; setTextColor(Color.WHITE) }, LinearLayout.LayoutParams(0, 44, 1f))
+        header.addView(TextView(this).apply { text = "NEXORA GAMEPAD"; textSize = 17f; setTextColor(Color.WHITE) }, LinearLayout.LayoutParams(0, 34, 1f))
         status = TextView(this).apply { text = "● SIN CONEXIÓN"; textSize = 12f; setTextColor(Color.rgb(255, 190, 90)) }
         header.addView(status); root.addView(header)
 
         val connection = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         ipField = EditText(this).apply { setSingleLine(true); setText(host); hint = "IP local de tu PC"; textSize = 14f; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY) }
-        connection.addView(ipField, LinearLayout.LayoutParams(0, 46, 1f))
+        connection.addView(ipField, LinearLayout.LayoutParams(0, 28, 1f))
         connectButton = Button(this).apply { text = "CONECTAR"; setOnClickListener { connectToPc() } }
         connection.addView(connectButton); root.addView(connection)
         codeField = EditText(this).apply {
@@ -80,8 +80,8 @@ class MainActivity : Activity() {
             setTextColor(Color.WHITE)
             setHintTextColor(Color.LTGRAY)
         }
-        root.addView(codeField, LinearLayout.LayoutParams(-1, 44))
-        root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 11f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
+        root.addView(codeField, LinearLayout.LayoutParams(-1, 36))
+        root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 9f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
 
         val tuning = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val sensitivityLabel = TextView(this).apply { text = "Sensibilidad"; textSize = 11f; setTextColor(Color.WHITE) }
@@ -118,24 +118,25 @@ class MainActivity : Activity() {
 
         val shoulders = LinearLayout(this).apply { gravity = Gravity.CENTER }
         listOf(Triple("L1","LB",1f), Triple("L2","LT",1f), Triple("SELECT","BACK",1f), Triple("START","START",1f), Triple("R2","RT",1f), Triple("R1","RB",1f)).forEach {
-            shoulders.addView(controlButton(it.first,it.second), LinearLayout.LayoutParams(0,44,it.third))
+            shoulders.addView(controlButton(it.first,it.second), LinearLayout.LayoutParams(0,36,it.third))
         }
         root.addView(shoulders)
 
         val game = LinearLayout(this).apply { gravity = Gravity.CENTER }
         val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        left.addView(JoystickView("leftX","leftY"), LinearLayout.LayoutParams(180,180))
-        left.addView(dpad(), LinearLayout.LayoutParams(180,112))
+        val stickSize = (resources.displayMetrics.heightPixels * 0.36f).toInt().coerceIn(108,150)
+        left.addView(JoystickView("leftX","leftY"), LinearLayout.LayoutParams(stickSize,stickSize))
+        left.addView(dpad(), LinearLayout.LayoutParams(stickSize,92))
         game.addView(left, LinearLayout.LayoutParams(0,-1,1f))
 
         val center = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        center.addView(controlButton("L3","LS"), LinearLayout.LayoutParams(70,44))
-        center.addView(JoystickView("rightX","rightY"), LinearLayout.LayoutParams(145,145))
+        center.addView(controlButton("L3","LS"), LinearLayout.LayoutParams(64,34))
+        center.addView(JoystickView("rightX","rightY"), LinearLayout.LayoutParams((stickSize * 0.78f).toInt(),(stickSize * 0.78f).toInt()))
         center.addView(controlButton("R3","RS"), LinearLayout.LayoutParams(70,44))
         game.addView(center, LinearLayout.LayoutParams(0,-1,1f))
 
         val face = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(controlButton("Y","Y"), LinearLayout.LayoutParams(68,60))
+        val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(controlButton("Y","Y"), LinearLayout.LayoutParams(54,48))
         val row2 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row2.addView(controlButton("X","X"), LinearLayout.LayoutParams(68,60)); row2.addView(controlButton("B","B"), LinearLayout.LayoutParams(68,60))
         val row3 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row3.addView(controlButton("A","A"), LinearLayout.LayoutParams(68,60))
         face.addView(row1); face.addView(row2); face.addView(row3)
@@ -151,7 +152,7 @@ class MainActivity : Activity() {
 
     private fun dpad(): View {
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        box.addView(controlButton("↑","UP"), LinearLayout.LayoutParams(56,36))
+        box.addView(controlButton("↑","UP"), LinearLayout.LayoutParams(48,30))
         val row = LinearLayout(this).apply { gravity = Gravity.CENTER }
         listOf(Triple("←","LEFT",0),Triple("↓","DOWN",1),Triple("→","RIGHT",2)).forEach { row.addView(controlButton(it.first,it.second), LinearLayout.LayoutParams(56,36)) }
         box.addView(row); return box
@@ -213,7 +214,7 @@ class MainActivity : Activity() {
                 try {
                     val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
-                    if (response.optString("type")=="hello_ack" || response.optString("type")=="input_ack") {
+                    if ((response.optString("type")=="hello_ack" || response.optString("type")=="input_ack") && packet.address.hostAddress == InetAddress.getByName(host).hostAddress) {
                         connected=true
                         lastResponseAt=System.currentTimeMillis()
                         val peer=packet.address.hostAddress ?: host
