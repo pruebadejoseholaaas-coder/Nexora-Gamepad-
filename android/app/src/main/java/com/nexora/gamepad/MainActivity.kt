@@ -15,6 +15,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,6 +46,8 @@ class MainActivity : Activity() {
     private lateinit var codeField: EditText
     private lateinit var connectButton: Button
     private var haptics = true
+    private var stickSensitivity = 1.0f
+    private var stickDeadzone = 0.08f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +55,8 @@ class MainActivity : Activity() {
         val preferences = getSharedPreferences("nexora_settings", MODE_PRIVATE)
         host = preferences.getString("pc_ip", host) ?: host
         haptics = preferences.getBoolean("haptics", true)
+        stickSensitivity = preferences.getFloat("stick_sensitivity", 1.0f)
+        stickDeadzone = preferences.getFloat("stick_deadzone", 0.08f)
         buildInterface()
     }
 
@@ -77,6 +82,39 @@ class MainActivity : Activity() {
         }
         root.addView(codeField, LinearLayout.LayoutParams(-1, 44))
         root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 11f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
+
+        val tuning = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val sensitivityLabel = TextView(this).apply { text = "Sensibilidad"; textSize = 11f; setTextColor(Color.WHITE) }
+        tuning.addView(sensitivityLabel)
+        val sensitivityBar = SeekBar(this).apply {
+            max = 100
+            progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0,100)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    stickSensitivity = 0.5f + progress / 100f
+                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("stick_sensitivity", stickSensitivity).apply()
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        tuning.addView(sensitivityBar, LinearLayout.LayoutParams(0, 38, 1f))
+        val deadzoneLabel = TextView(this).apply { text = "Zona muerta"; textSize = 11f; setTextColor(Color.WHITE) }
+        tuning.addView(deadzoneLabel)
+        val deadzoneBar = SeekBar(this).apply {
+            max = 25
+            progress = (stickDeadzone * 100f).toInt().coerceIn(0,25)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    stickDeadzone = progress / 100f
+                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("stick_deadzone", stickDeadzone).apply()
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        tuning.addView(deadzoneBar, LinearLayout.LayoutParams(0, 38, 1f))
+        root.addView(tuning)
 
         val shoulders = LinearLayout(this).apply { gravity = Gravity.CENTER }
         listOf(Triple("L1","LB",1f), Triple("L2","LT",1f), Triple("SELECT","BACK",1f), Triple("START","START",1f), Triple("R2","RT",1f), Triple("R1","RB",1f)).forEach {
@@ -143,7 +181,17 @@ class MainActivity : Activity() {
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val cx=width/2f; val cy=height/2f; val r=min(width,height)*0.39f
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) { nx=0f; ny=0f }
-            else { nx=((event.x-cx)/r).coerceIn(-1f,1f); ny=((event.y-cy)/r).coerceIn(-1f,1f) }
+            else {
+                val rawX=((event.x-cx)/r).coerceIn(-1f,1f)
+                val rawY=((event.y-cy)/r).coerceIn(-1f,1f)
+                fun tune(value: Float): Float {
+                    val magnitude = kotlin.math.abs(value)
+                    if (magnitude <= stickDeadzone) return 0f
+                    val adjusted = ((magnitude - stickDeadzone) / (1f - stickDeadzone)).coerceIn(0f,1f)
+                    return (kotlin.math.sign(value) * adjusted * stickSensitivity).coerceIn(-1f,1f)
+                }
+                nx=tune(rawX); ny=tune(rawY)
+            }
             synchronized(lock) { axes[xName]=nx.toDouble(); axes[yName]=ny.toDouble() }
             invalidate(); return true
         }
