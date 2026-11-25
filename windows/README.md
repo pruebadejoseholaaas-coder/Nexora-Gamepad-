@@ -1,31 +1,35 @@
 # Nexora Gamepad para Windows
 
-Receptor UDP local y puente de entrada a un mando virtual XInput.
+Receptor UDP local y puente de entrada a un mando virtual XInput o teclado.
 
 ## Requisitos
 - Windows 10/11 de 64 bits.
-- Teléfono y PC en la misma red Wi-Fi.
-- Para ejecutar desde código: Python 3.11 o posterior.
-- Para que los juegos detecten XInput se requiere un controlador virtual compatible con `vgamepad`. El backend tradicional de ViGEmBus está retirado y archivado; no vamos a incluir ni instalar ese controlador automáticamente. Si el mando virtual no está disponible, el receptor ofrece un modo alternativo de teclado para PPSSPP.
+- Python 3.11 o posterior si se ejecuta desde código.
+- PC y teléfono conectados mediante Wi-Fi, anclaje USB o anclaje Bluetooth PAN.
+- Para que los juegos detecten XInput se requiere un controlador virtual compatible con `vgamepad`. ViGEmBus tradicional está retirado; Nexora no lo instala automáticamente.
 
 ## Uso
 1. Ejecuta `NexoraGamepad.exe` o `python main.py`.
 2. El receptor muestra un código temporal de seis dígitos.
 3. Si Windows Firewall pregunta, permite la comunicación solo en redes privadas.
-4. Consulta la IPv4 del PC en Configuración > Red e Internet > Wi-Fi.
-5. Introduce la IP y el código en Android y pulsa **CONECTAR**.
+4. En el teléfono, selecciona Wi-Fi, USB o Bluetooth.
+5. Introduce en Android la IPv4 del adaptador de Windows correspondiente a esa conexión y el código de seis dígitos.
+6. Pulsa **CONECTAR**.
 
-El primer teléfono que complete el emparejamiento queda autorizado hasta reiniciar el receptor. Para cambiar de teléfono, cierra y vuelve a iniciar el programa.
+### Cómo encontrar la IP correcta
+Abre CMD o PowerShell y ejecuta `ipconfig`.
+- Wi-Fi: usa la IPv4 del adaptador Wi-Fi que comparte la red con el teléfono.
+- USB: conecta el cable, activa Anclaje USB en Android y usa la IPv4 del adaptador Ethernet/RNDIS.
+- Bluetooth: empareja los dispositivos, activa Anclaje Bluetooth en Android y conecta Windows a la red PAN; usa la IPv4 del adaptador Bluetooth.
+
+El nombre exacto del adaptador depende del controlador y de Windows. No uses la IP pública ni la puerta de enlace; introduce la IPv4 asignada al propio PC en esa interfaz.
 
 ## Funciones
-- Escucha UDP en el puerto 26760.
-- Emparejamiento básico mediante código temporal.
-- Mapeo de botones, cruceta, sticks y gatillos a XInput.
-- Libera controles al perder el flujo de paquetes o cerrar el receptor.
-- Modo alternativo de teclado para PPSSPP, activado expresamente al iniciar si no hay mando virtual.
-- Modo diagnóstico si el usuario rechaza el modo teclado.
-
-Consulta [PPSSPP.md](PPSSPP.md) para configurar las teclas. El modo teclado envía entradas a la ventana activa: mantén PPSSPP en primer plano.
+- UDP en el puerto 26760, escuchando en las interfaces locales.
+- Código temporal de emparejamiento.
+- Controles XInput si existe un backend compatible.
+- Modo teclado opcional para PPSSPP.
+- Liberación de controles al perder el flujo de paquetes.
 
 ## Seguridad
-El código viaja sin cifrado y no sustituye autenticación criptográfica. Usa solo una red local de confianza, no compartas el código y no abras el puerto 26760 hacia Internet.
+El código viaja sin cifrado y no sustituye autenticación criptográfica. Usa redes de confianza, permite el acceso solo en redes privadas y no abras ni reenvíes el puerto 26760 hacia Internet.
