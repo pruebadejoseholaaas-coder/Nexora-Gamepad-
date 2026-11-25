@@ -1,4 +1,6 @@
 import json
+import math
+import secrets
 import socket
 import sys
 import time
@@ -27,7 +29,10 @@ BUTTONS = {
 
 def clamp(value, low, high):
     try:
-        return max(low, min(high, float(value)))
+        number = float(value)
+        if not math.isfinite(number):
+            return 0.0
+        return max(low, min(high, number))
     except (TypeError, ValueError):
         return 0.0
 
@@ -75,10 +80,14 @@ def main():
     else:
         print("Biblioteca vgamepad no disponible: modo diagnóstico.")
 
+    pairing_code = f"{secrets.randbelow(1000000):06d}"
+    paired_ip = None
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(PACKET_TIMEOUT_SECONDS)
     sock.bind((HOST, PORT))
     print("Nexora Gamepad escucha en UDP", PORT)
+    print("Código de emparejamiento (introdúcelo en Android):", pairing_code)
+    print("El primer teléfono que use el código quedará emparejado hasta reiniciar el receptor.")
     print("Busca la IPv4 del PC en Configuración > Red e Internet > Wi-Fi.")
     print("Introduce esa IP en Android y pulsa CONECTAR.")
     print("Permite el acceso solo en redes privadas si Firewall lo solicita.")
@@ -109,6 +118,8 @@ def main():
                 if last_sender != address[0]:
                     print("\nTeléfono conectado:", address[0])
                 last_sender = address[0]
+                continue
+            if address[0] != paired_ip or data.get("code") != pairing_code:
                 continue
             parsed = parse_input(data)
             if parsed is None:
