@@ -6,7 +6,7 @@ Mando táctil horizontal para un PC Windows en la misma red local.
 - Stick analógico izquierdo y derecho.
 - Cruceta, A/B/X/Y.
 - L1/R1, L2/R2, L3/R3, Start y Select.
-- Vibración háptica local con interruptor.
+- Vibración háptica local con interruptor.\n- Ajustes de sensibilidad y zona muerta para ambos sticks, guardados en el teléfono.
 
 ## Conexión
 1. Ejecuta el receptor Nexora Gamepad en Windows.
