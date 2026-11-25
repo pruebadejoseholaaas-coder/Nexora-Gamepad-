@@ -61,5 +61,34 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(main.merge_client_states({}), (set(), {}))
 
 
+    def test_merge_clamps_untrusted_axis_values(self):
+        states = {
+            "phone": ({"A"}, {"leftX": 9, "leftY": float("nan"),
+                              "leftTrigger": -4, "rightTrigger": 3}, 1.0)
+        }
+        buttons, axes = main.merge_client_states(states)
+        self.assertEqual(buttons, {"A"})
+        self.assertEqual(axes["leftX"], 1)
+        self.assertEqual(axes["leftY"], 0)
+        self.assertEqual(axes["leftTrigger"], 0)
+        self.assertEqual(axes["rightTrigger"], 1)
+
+    def test_merge_supports_four_phones_without_losing_buttons(self):
+        states = {
+            "phone1": ({"A"}, {"leftX": 0.2}, 1.0),
+            "phone2": ({"B"}, {"leftX": -0.9}, 1.0),
+            "phone3": ({"X"}, {"rightY": 0.6}, 1.0),
+            "phone4": ({"Y", "START"}, {"rightY": -0.8}, 1.0),
+        }
+        buttons, axes = main.merge_client_states(states)
+        self.assertEqual(buttons, {"A", "B", "X", "Y", "START"})
+        self.assertEqual(axes["leftX"], -0.9)
+        self.assertEqual(axes["rightY"], -0.8)
+
+    def test_keyboard_trigger_uses_threshold(self):
+        self.assertEqual(main.keyboard_keys(set(), {"leftTrigger": 0.6}), {0x31})
+        self.assertEqual(main.keyboard_keys(set(), {"rightTrigger": 0.5}), set())
+
+
 if __name__ == "__main__":
     unittest.main()
