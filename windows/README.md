@@ -6,7 +6,9 @@ Receptor UDP local y puente de entrada a un mando virtual XInput o teclado.
 - Windows 10/11 de 64 bits.
 - Python 3.11 o posterior si se ejecuta desde código.
 - PC y teléfono conectados mediante Wi-Fi, anclaje USB o anclaje Bluetooth PAN.
-- Para que los juegos detecten XInput se requiere un controlador virtual compatible con `vgamepad`. ViGEmBus tradicional está retirado; Nexora no lo instala automáticamente.
+- Para que los juegos detecten un mando XInput se necesita un controlador virtual compatible con `vgamepad`. Instalar la biblioteca de Python no instala ese controlador.
+- Nexora no descarga ni instala controladores de sistema. ViGEmBus está retirado y archivado; no se incluye ni se instala automáticamente.
+- Si no hay un controlador virtual disponible, puedes usar el modo teclado opcional para PPSSPP.
 
 ## Uso
 1. Ejecuta `NexoraGamepad.exe` o `python main.py`.
@@ -27,8 +29,8 @@ El nombre exacto del adaptador depende del controlador y de Windows. No uses la 
 ## Funciones
 - UDP en el puerto 26760, escuchando en las interfaces locales.
 - Código temporal de emparejamiento compartido por hasta cuatro teléfonos.
-- Controles XInput si existe un backend compatible.
-- Modo teclado opcional para PPSSPP.
+- Salida XInput únicamente si el PC ya dispone de un controlador virtual compatible con `vgamepad`.
+- Modo teclado opcional para PPSSPP, sin instalar controladores adicionales.
 - Liberación de controles al perder el flujo de paquetes.
 
 ## Seguridad
