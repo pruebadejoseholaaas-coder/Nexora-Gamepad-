@@ -9,6 +9,8 @@ Convierte un teléfono Android en un mando táctil para Windows mediante la red 
 - Conexión UDP con saludo, confirmación y detección de pérdida de respuesta.
 - Código de emparejamiento de seis dígitos generado por Windows.
 - Receptor Windows con mapeo a XInput y liberación automática de controles.
+- Conexión por Wi-Fi, anclaje USB o Bluetooth PAN.
+- Hasta cuatro teléfonos conectados al mismo receptor, compartiendo un mando virtual.
 - Modo teclado opcional para PPSSPP cuando no hay controlador virtual.
 - Compilaciones APK y EXE en GitHub Actions.
 
