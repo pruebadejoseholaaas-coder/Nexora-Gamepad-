@@ -47,6 +47,19 @@ class ProtocolTests(unittest.TestCase):
         keys = main.keyboard_keys(set(), {"leftX": 0.4, "leftY": -0.2})
         self.assertEqual(keys, set())
 
+    def test_merge_client_states_combines_buttons_and_sticks(self):
+        states = {
+            "192.168.1.20": ({"A"}, {"leftX": 0.8, "leftY": 0.0}, 1.0),
+            "192.168.1.21": ({"B"}, {"leftX": -0.4, "leftY": -0.7}, 1.1),
+        }
+        buttons, axes = main.merge_client_states(states)
+        self.assertEqual(buttons, {"A", "B"})
+        self.assertEqual(axes["leftX"], 0.8)
+        self.assertEqual(axes["leftY"], -0.7)
+
+    def test_merge_client_states_handles_no_phones(self):
+        self.assertEqual(main.merge_client_states({}), (set(), {}))
+
 
 if __name__ == "__main__":
     unittest.main()
