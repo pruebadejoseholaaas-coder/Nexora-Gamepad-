@@ -101,6 +101,19 @@ def parse_input(data):
     buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
     return buttons, axes
 
+def merge_client_states(client_states):
+    if not client_states:
+        return set(), {}
+    buttons = set().union(*(state[0] for state in client_states.values()))
+    axes = {}
+    axis_names = ("leftX", "leftY", "rightX", "rightY", "leftTrigger", "rightTrigger")
+    for name in axis_names:
+        values = [clamp(state[1].get(name, 0), -1 if "Trigger" not in name else 0, 1)
+                  for state in client_states.values()]
+        axes[name] = max(values, key=abs) if "Trigger" not in name else max(values, default=0)
+    return buttons, axes
+
+
 def apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard):
     if pad is not None:
         for name, enum_name in BUTTONS.items():
@@ -182,12 +195,7 @@ def main():
                     paired_ips.discard(ip)
                     print("\nTeléfono desconectado:", ip)
                 if expired:
-                    buttons = set()
-                    axes = {}
-                    if client_states:
-                        buttons = set().union(*(state[0] for state in client_states.values()))
-                        newest = max(client_states.values(), key=lambda state: state[2])
-                        axes = newest[1]
+                    buttons, axes = merge_client_states(client_states)
                     previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
                     previous = buttons
                     if not client_states:
@@ -226,9 +234,7 @@ def main():
             now = time.monotonic()
             client_states[address[0]] = (buttons, axes, now)
             client_seen[address[0]] = now
-            merged_buttons = set().union(*(state[0] for state in client_states.values()))
-            newest = max(client_states.values(), key=lambda state: state[2])
-            merged_axes = newest[1]
+            merged_buttons, merged_axes = merge_client_states(client_states)
             previous_keyboard = apply_controls(pad, keyboard_mode, merged_buttons, merged_axes, previous, previous_keyboard)
             previous = merged_buttons
             send_json(sock, address, {"type": "input_ack", "version": 1})
