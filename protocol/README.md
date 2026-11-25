@@ -2,7 +2,7 @@
 
 Versión 1: UDP en red local, puerto 26760.
 
-El transporte es independiente de la interfaz de red. Puede funcionar por Wi-Fi, por Ethernet/RNDIS creado mediante Anclaje USB o por Bluetooth PAN creado mediante Anclaje Bluetooth. El teléfono envía los paquetes a la IPv4 del PC en la interfaz correspondiente.
+El transporte es independiente de la interfaz de red. Puede funcionar por Wi-Fi, por Ethernet/RNDIS creado mediante Anclaje USB o por Bluetooth PAN creado mediante Anclaje Bluetooth. El teléfono envía los paquetes a la IPv4 del PC en la interfaz correspondiente. Un mismo receptor admite hasta cuatro teléfonos emparejados con el mismo código; sus botones se unen y para cada eje se conserva el valor de mayor magnitud.
 
 ## Mensajes Android → Windows
 - `hello`: solicita emparejamiento; incluye `code` de seis dígitos.
