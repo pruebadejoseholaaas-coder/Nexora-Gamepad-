@@ -254,11 +254,25 @@ class MainActivity : Activity() {
                 try {
                     val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
-                    if ((response.optString("type")=="hello_ack" || response.optString("type")=="input_ack") && packet.address.hostAddress == InetAddress.getByName(host).hostAddress) {
-                        connected=true
-                        lastResponseAt=System.currentTimeMillis()
-                        val peer=packet.address.hostAddress ?: host
-                        runOnUiThread { status.text="● CONECTADO A "+peer; status.setTextColor(Color.rgb(90,220,145)); connectButton.text="CONECTADO" }
+                    if (packet.address.hostAddress == InetAddress.getByName(host).hostAddress) {
+                        when (response.optString("type")) {
+                            "busy" -> runOnUiThread {
+                                connected = false
+                                status.text = "● LÍMITE DE TELÉFONOS ALCANZADO"
+                                status.setTextColor(Color.rgb(255, 150, 90))
+                                connectButton.text = "REINTENTAR"
+                            }
+                            "hello_ack", "input_ack" -> {
+                                connected = true
+                                lastResponseAt = System.currentTimeMillis()
+                                val peer = packet.address.hostAddress ?: host
+                                runOnUiThread {
+                                    status.text = "● CONECTADO A " + peer
+                                    status.setTextColor(Color.rgb(90, 220, 145))
+                                    connectButton.text = "CONECTADO"
+                                }
+                            }
+                        }
                     }
                 } catch (_: SocketTimeoutException) { } catch (_: Exception) { if (running) runOnUiThread { status.text="● ERROR DE RED" } }
             }
