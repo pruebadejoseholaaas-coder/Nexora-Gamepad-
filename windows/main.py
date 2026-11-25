@@ -212,6 +212,24 @@ def main():
                 continue
             if not isinstance(data, dict) or data.get("version") != 1:
                 continue
+            now = time.monotonic()
+            expired = [ip for ip, seen in client_seen.items() if now - seen > PACKET_TIMEOUT_SECONDS]
+            for ip in expired:
+                client_seen.pop(ip, None)
+                client_states.pop(ip, None)
+                paired_ips.discard(ip)
+                print("\\nTeléfono desconectado:", ip)
+            if expired:
+                buttons, axes = merge_client_states(client_states)
+                previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
+                previous = buttons
+                if not client_states:
+                    release_all(pad)
+                    if previous_keyboard:
+                        apply_keyboard_state(set(), previous_keyboard)
+                        previous_keyboard.clear()
+                    previous.clear()
+                    print("\\nTodos los teléfonos desconectados: controles liberados.")
             if data.get("type") == "hello":
                 if data.get("code") != pairing_code:
                     continue
