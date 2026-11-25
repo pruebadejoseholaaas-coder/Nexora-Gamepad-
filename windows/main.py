@@ -9,6 +9,7 @@ PORT = 26760
 HOST = "0.0.0.0"
 PACKET_TIMEOUT_SECONDS = 1.0
 MAX_PACKET_BYTES = 4096
+MAX_CLIENTS = 4
 
 try:
     import vgamepad as vg
@@ -100,6 +101,26 @@ def parse_input(data):
     buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
     return buttons, axes
 
+def apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard):
+    if pad is not None:
+        for name, enum_name in BUTTONS.items():
+            button = getattr(vg.XUSB_BUTTON, enum_name)
+            if name in buttons and name not in previous:
+                pad.press_button(button=button)
+            elif name not in buttons and name in previous:
+                pad.release_button(button=button)
+        pad.left_joystick(x_value=int(clamp(axes.get("leftX",0),-1,1)*32767), y_value=int(-clamp(axes.get("leftY",0),-1,1)*32767))
+        pad.right_joystick(x_value=int(clamp(axes.get("rightX",0),-1,1)*32767), y_value=int(-clamp(axes.get("rightY",0),-1,1)*32767))
+        pad.left_trigger(value=int(clamp(axes.get("leftTrigger",0),0,1)*255))
+        pad.right_trigger(value=int(clamp(axes.get("rightTrigger",0),0,1)*255))
+        pad.update()
+    elif keyboard_mode:
+        current_keyboard = keyboard_keys(buttons, axes)
+        apply_keyboard_state(current_keyboard, previous_keyboard)
+        return current_keyboard
+    return previous_keyboard
+
+
 def send_json(sock, address, payload):
     try:
         sock.sendto(json.dumps(payload, separators=(",", ":")).encode("utf-8"), address)
@@ -131,13 +152,15 @@ def main():
             print("Modo diagnóstico: no se enviarán controles al PC.")
 
     pairing_code = f"{secrets.randbelow(1000000):06d}"
-    paired_ip = None
+    paired_ips = set()
+    client_states = {}
+    client_seen = {}
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(PACKET_TIMEOUT_SECONDS)
     sock.bind((HOST, PORT))
     print("Nexora Gamepad escucha en UDP", PORT)
     print("Código de emparejamiento (introdúcelo en Android):", pairing_code)
-    print("El primer teléfono que use el código quedará emparejado hasta reiniciar el receptor.")
+    print("Hasta cuatro teléfonos pueden usar el mismo código y quedar emparejados hasta reiniciar el receptor.")
     print("Busca la IPv4 del PC en Configuración > Red e Internet > Wi-Fi.")
     print("Introduce esa IP en Android y pulsa CONECTAR.")
     print("Permite el acceso solo en redes privadas si Firewall lo solicita.")
@@ -145,21 +168,35 @@ def main():
 
     previous = set()
     previous_keyboard = set()
-    last_sender = None
     last_notice = 0.0
     try:
         while True:
             try:
                 raw, address = sock.recvfrom(MAX_PACKET_BYTES)
             except socket.timeout:
-                if previous or last_sender is not None:
-                    release_all(pad)
-                    previous.clear()
-                    if previous_keyboard:
-                        apply_keyboard_state(set(), previous_keyboard)
-                        previous_keyboard.clear()
-                    last_sender = None
-                    print("\nTeléfono inactivo: controles liberados.")
+                now = time.monotonic()
+                expired = [ip for ip, seen in client_seen.items() if now - seen > PACKET_TIMEOUT_SECONDS]
+                for ip in expired:
+                    client_seen.pop(ip, None)
+                    client_states.pop(ip, None)
+                    paired_ips.discard(ip)
+                    print("\nTeléfono desconectado:", ip)
+                if expired:
+                    buttons = set()
+                    axes = {}
+                    if client_states:
+                        buttons = set().union(*(state[0] for state in client_states.values()))
+                        newest = max(client_states.values(), key=lambda state: state[2])
+                        axes = newest[1]
+                    previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
+                    previous = buttons
+                    if not client_states:
+                        release_all(pad)
+                        if previous_keyboard:
+                            apply_keyboard_state(set(), previous_keyboard)
+                            previous_keyboard.clear()
+                        previous.clear()
+                        print("\nTodos los teléfonos desconectados: controles liberados.")
                 continue
             try:
                 data = json.loads(raw.decode("utf-8"))
@@ -170,42 +207,34 @@ def main():
             if data.get("type") == "hello":
                 if data.get("code") != pairing_code:
                     continue
-                if paired_ip is None:
-                    paired_ip = address[0]
-                    print("\nTeléfono emparejado:", paired_ip)
-                if address[0] != paired_ip:
-                    continue
+                if address[0] not in paired_ips:
+                    if len(paired_ips) >= MAX_CLIENTS:
+                        send_json(sock, address, {"type": "busy", "version": 1, "message": "Máximo de teléfonos conectados alcanzado"})
+                        continue
+                    paired_ips.add(address[0])
+                    client_states[address[0]] = (set(), {}, time.monotonic())
+                    print("\nTeléfono emparejado:", address[0], "|", len(paired_ips), "de", MAX_CLIENTS)
+                client_seen[address[0]] = time.monotonic()
                 send_json(sock, address, {"type": "hello_ack", "version": 1, "name": "Nexora Gamepad"})
-                last_sender = address[0]
                 continue
-            if address[0] != paired_ip or data.get("code") != pairing_code:
+            if address[0] not in paired_ips or data.get("code") != pairing_code:
                 continue
             parsed = parse_input(data)
             if parsed is None:
                 continue
             buttons, axes = parsed
-            if pad is not None:
-                for name, enum_name in BUTTONS.items():
-                    button = getattr(vg.XUSB_BUTTON, enum_name)
-                    if name in buttons and name not in previous:
-                        pad.press_button(button=button)
-                    elif name not in buttons and name in previous:
-                        pad.release_button(button=button)
-                pad.left_joystick(x_value=int(clamp(axes.get("leftX",0),-1,1)*32767), y_value=int(-clamp(axes.get("leftY",0),-1,1)*32767))
-                pad.right_joystick(x_value=int(clamp(axes.get("rightX",0),-1,1)*32767), y_value=int(-clamp(axes.get("rightY",0),-1,1)*32767))
-                pad.left_trigger(value=int(clamp(axes.get("leftTrigger",0),0,1)*255))
-                pad.right_trigger(value=int(clamp(axes.get("rightTrigger",0),0,1)*255))
-                pad.update()
-            elif keyboard_mode:
-                current_keyboard = keyboard_keys(buttons, axes)
-                apply_keyboard_state(current_keyboard, previous_keyboard)
-                previous_keyboard = current_keyboard
-            previous = buttons
-            last_sender = address[0]
+            now = time.monotonic()
+            client_states[address[0]] = (buttons, axes, now)
+            client_seen[address[0]] = now
+            merged_buttons = set().union(*(state[0] for state in client_states.values()))
+            newest = max(client_states.values(), key=lambda state: state[2])
+            merged_axes = newest[1]
+            previous_keyboard = apply_controls(pad, keyboard_mode, merged_buttons, merged_axes, previous, previous_keyboard)
+            previous = merged_buttons
             send_json(sock, address, {"type": "input_ack", "version": 1})
             now = time.monotonic()
             if now-last_notice > 2:
-                print("Controles recibidos de", last_sender, "|", "XInput activo" if pad is not None else ("teclado PPSSPP activo" if keyboard_mode else "modo diagnóstico"))
+                print("Controles recibidos | teléfonos conectados:", len(paired_ips), "|", "XInput activo" if pad is not None else ("teclado PPSSPP activo" if keyboard_mode else "modo diagnóstico"))
                 last_notice = now
     except KeyboardInterrupt:
         print("\nCerrando Nexora Gamepad...")
