@@ -1,28 +1,35 @@
 # Nexora Gamepad
 
-Convierte un teléfono Android en un mando inalámbrico para Windows.
+Convierte un teléfono Android en un mando táctil para Windows mediante la red Wi-Fi local.
 
-## Objetivo
-- Conexión local por Wi-Fi, sin cuentas ni servicios en la nube.
-- Controles táctiles configurables: botones, cruceta, sticks y gatillos.
-- Perfiles para emuladores como PPSSPP.
-- Vibración local al tocar controles.
-- Objetivo de desarrollo: recibir también la vibración/rumble que produzca el juego en el PC y reproducirla en Android. Esta función requiere integración y pruebas específicas; no se considera implementada todavía.
+## Funciones implementadas en esta etapa
+- Interfaz Android horizontal con botones A/B/X/Y, cruceta, L1/R1, L2/R2, Start, Select y pulsación de sticks.
+- Dos sticks analógicos táctiles.
+- Vibración háptica local activable o desactivable.
+- Conexión UDP con saludo y confirmación del receptor.
+- Señal de respuesta periódica para detectar cuando el PC deja de responder.
+- Receptor Windows con mapeo inicial a un mando virtual XInput.
+- Liberación de controles cuando se pierde el envío del teléfono o se cierra el receptor.
+- Compilación automática de APK y EXE mediante GitHub Actions.
 
 ## Componentes
 - `android/`: aplicación Android.
-- `windows/`: receptor para Windows y puente hacia un mando virtual.
-- `protocol/`: protocolo de comunicación local.
-- `.github/workflows/`: compilación automática.
+- `windows/`: receptor Windows.
+- `protocol/`: protocolo local.
+- `.github/workflows/`: compilaciones.
+
+## Pendiente de completar y verificar
+- Perfiles guardables y editor visual de asignación de botones.
+- Vibración de retorno desde el juego del PC al teléfono.
+- Emparejamiento autenticado y endurecimiento adicional de la comunicación local.
+- Pruebas reales con distintos juegos y emuladores, incluido PPSSPP.
+- Verificación de compatibilidad del controlador virtual en el equipo de destino.
+
+## Privacidad y seguridad
+No requiere cuenta, anuncios ni servicios en la nube. La comunicación se limita a la red local. No abras ni reenvíes el puerto UDP 26760 hacia Internet. Permite el acceso en el firewall solo para redes privadas. El protocolo actual todavía no incorpora emparejamiento criptográfico, por lo que debe usarse únicamente en una red local de confianza.
 
 ## Estado
-Proyecto inicial. Las compilaciones y funciones se irán habilitando y verificando por etapas.
-
-## Privacidad
-El diseño previsto es local: no necesita cuentas, analítica, anuncios ni servidores externos. La conexión se realiza dentro de la red local. Revisa el código antes de usarlo y no expongas el puerto del receptor a Internet.
-
-## Compilar
-Consulta las instrucciones de cada carpeta. Los archivos instalables se publicarán como artefactos de GitHub Actions cuando las compilaciones estén configuradas.
+Versión de desarrollo. Que GitHub Actions compile correctamente no sustituye las pruebas de funcionamiento en un teléfono y un PC reales.
 
 ## Licencia
 GPL-3.0-or-later. Consulta `LICENSE`.
