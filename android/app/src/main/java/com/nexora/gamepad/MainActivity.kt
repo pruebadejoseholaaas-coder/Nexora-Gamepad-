@@ -73,20 +73,20 @@ class MainActivity : Activity() {
         val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         left.addView(JoystickView("leftX","leftY"), LinearLayout.LayoutParams(180,180))
         left.addView(dpad(), LinearLayout.LayoutParams(180,112))
-        game.addView(left, LinearLayout.LayoutParams(0,0,1f))
+        game.addView(left, LinearLayout.LayoutParams(0,-1,1f))
 
         val center = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         center.addView(controlButton("L3","LS"), LinearLayout.LayoutParams(70,44))
         center.addView(JoystickView("rightX","rightY"), LinearLayout.LayoutParams(145,145))
         center.addView(controlButton("R3","RS"), LinearLayout.LayoutParams(70,44))
-        game.addView(center, LinearLayout.LayoutParams(0,0,1f))
+        game.addView(center, LinearLayout.LayoutParams(0,-1,1f))
 
         val face = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(controlButton("Y","Y"), LinearLayout.LayoutParams(68,60))
         val row2 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row2.addView(controlButton("X","X"), LinearLayout.LayoutParams(68,60)); row2.addView(controlButton("B","B"), LinearLayout.LayoutParams(68,60))
         val row3 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row3.addView(controlButton("A","A"), LinearLayout.LayoutParams(68,60))
         face.addView(row1); face.addView(row2); face.addView(row3)
-        game.addView(face, LinearLayout.LayoutParams(0,0,1f))
+        game.addView(face, LinearLayout.LayoutParams(0,-1,1f))
         root.addView(game, LinearLayout.LayoutParams(-1,0,1f))
 
         val footer = LinearLayout(this).apply { gravity = Gravity.CENTER }
@@ -108,8 +108,8 @@ class MainActivity : Activity() {
         text = label; textSize = 13f
         setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) { pressed.add(key) }; vibrateTap(); true }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { pressed.remove(key) }; true }
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) { if (key == "LT") axes["leftTrigger"] = 1.0 else if (key == "RT") axes["rightTrigger"] = 1.0 else pressed.add(key) }; vibrateTap(); true }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { if (key == "LT") axes["leftTrigger"] = 0.0 else if (key == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(key) }; true }
                 else -> true
             }
         }
