@@ -149,7 +149,7 @@ def show_network_addresses():
                 adapter = ""
                 for previous_line in reversed(lines[:index]):
                     candidate = previous_line.strip()
-                    if candidate and (candidate.endswith(":") or candidate.endswith(":")):
+                    if candidate.endswith(":"):
                         adapter = candidate
                         break
                 matches.append((adapter, line.strip()))
