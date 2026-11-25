@@ -27,6 +27,45 @@ BUTTONS = {
     "LS": "XUSB_GAMEPAD_LEFT_THUMB", "RS": "XUSB_GAMEPAD_RIGHT_THUMB",
 }
 
+# Teclas pensadas para asignarse manualmente en PPSSPP.
+KEYBOARD_BUTTONS = {
+    "A": 0x4A, "B": 0x4B, "X": 0x55, "Y": 0x49,
+    "UP": 0x26, "DOWN": 0x28, "LEFT": 0x25, "RIGHT": 0x27,
+    "LB": 0x51, "RB": 0x45, "BACK": 0x08, "START": 0x0D,
+    "LS": 0x43, "RS": 0x56,
+}
+KEYBOARD_AXES = {
+    ("leftX", -1): 0x41, ("leftX", 1): 0x44,
+    ("leftY", -1): 0x57, ("leftY", 1): 0x53,
+    ("rightX", -1): 0x46, ("rightX", 1): 0x48,
+    ("rightY", -1): 0x54, ("rightY", 1): 0x47,
+}
+KEYBOARD_TRIGGERS = {"leftTrigger": 0x31, "rightTrigger": 0x32}
+KEYEVENTF_KEYUP = 0x0002
+
+
+def keyboard_keys(buttons, axes):
+    """Return the currently-held virtual keys for the optional PPSSPP mode."""
+    keys = {KEYBOARD_BUTTONS[name] for name in buttons if name in KEYBOARD_BUTTONS}
+    for (axis, direction), key in KEYBOARD_AXES.items():
+        value = clamp(axes.get(axis, 0), -1, 1)
+        if value * direction > 0.55:
+            keys.add(key)
+    for axis, key in KEYBOARD_TRIGGERS.items():
+        if clamp(axes.get(axis, 0), 0, 1) > 0.5:
+            keys.add(key)
+    return keys
+
+
+def apply_keyboard_state(current, previous):
+    """Send only key transitions; Windows releases are also sent on disconnect."""
+    import ctypes
+    for key in previous - current:
+        ctypes.windll.user32.keybd_event(key, 0, KEYEVENTF_KEYUP, 0)
+    for key in current - previous:
+        ctypes.windll.user32.keybd_event(key, 0, 0, 0)
+
+
 def clamp(value, low, high):
     try:
         number = float(value)
@@ -69,6 +108,7 @@ def send_json(sock, address, payload):
 
 def main():
     pad = None
+    keyboard_mode = False
     if GAMEPAD_AVAILABLE:
         try:
             pad = vg.VX360Gamepad()
@@ -79,6 +119,16 @@ def main():
             print("Detalle:", exc)
     else:
         print("Biblioteca vgamepad no disponible: modo diagnóstico.")
+    if pad is None:
+        try:
+            answer = input("¿Activar modo teclado para PPSSPP? [s/N]: ").strip().lower()
+            keyboard_mode = answer in ("s", "si", "sí", "y", "yes")
+        except EOFError:
+            keyboard_mode = False
+        if keyboard_mode:
+            print("Modo teclado activo. Usa PPSSPP en primer plano y configura sus teclas según windows/PPSSPP.md.")
+        else:
+            print("Modo diagnóstico: no se enviarán controles al PC.")
 
     pairing_code = f"{secrets.randbelow(1000000):06d}"
     paired_ip = None
@@ -94,6 +144,7 @@ def main():
     print("No expongas este puerto a Internet. Ctrl+C para salir.")
 
     previous = set()
+    previous_keyboard = set()
     last_sender = None
     last_notice = 0.0
     try:
@@ -104,6 +155,9 @@ def main():
                 if previous or last_sender is not None:
                     release_all(pad)
                     previous.clear()
+                    if previous_keyboard:
+                        apply_keyboard_state(set(), previous_keyboard)
+                        previous_keyboard.clear()
                     last_sender = None
                     print("\nTeléfono inactivo: controles liberados.")
                 continue
@@ -142,6 +196,10 @@ def main():
                 pad.left_trigger(value=int(clamp(axes.get("leftTrigger",0),0,1)*255))
                 pad.right_trigger(value=int(clamp(axes.get("rightTrigger",0),0,1)*255))
                 pad.update()
+            elif keyboard_mode:
+                current_keyboard = keyboard_keys(buttons, axes)
+                apply_keyboard_state(current_keyboard, previous_keyboard)
+                previous_keyboard = current_keyboard
             previous = buttons
             last_sender = address[0]
             send_json(sock, address, {"type": "input_ack", "version": 1})
@@ -153,6 +211,8 @@ def main():
         print("\nCerrando Nexora Gamepad...")
     finally:
         release_all(pad)
+        if previous_keyboard:
+            apply_keyboard_state(set(), previous_keyboard)
         sock.close()
 
 if __name__ == "__main__":
