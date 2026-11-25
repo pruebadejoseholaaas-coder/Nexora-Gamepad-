@@ -4,7 +4,8 @@ Convierte un teléfono Android en un mando táctil para Windows mediante la red 
 
 ## Funciones en desarrollo
 - Controles Android horizontales: A/B/X/Y, cruceta, dos sticks, L1/R1, L2/R2, L3/R3, Start y Select.
-- Vibración háptica local configurable.\n- Ajustes guardados de sensibilidad y zona muerta de los sticks.
+- Vibración háptica local configurable.
+- Ajustes guardados de sensibilidad y zona muerta de los sticks.
 - Conexión UDP con saludo, confirmación y detección de pérdida de respuesta.
 - Código de emparejamiento de seis dígitos generado por Windows.
 - Receptor Windows con mapeo a XInput y liberación automática de controles.
