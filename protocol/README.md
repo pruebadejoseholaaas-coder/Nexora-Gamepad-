@@ -1,20 +1,27 @@
-# Protocolo local
+# Protocolo Nexora Gamepad
 
-Versión 1: UDP sobre la red Wi-Fi local.
+Versión 1: UDP dentro de la red local, puerto 26760.
 
-- Puerto del receptor: UDP 26760.
-- El teléfono envía paquetes JSON de estado de controles.
-- No se envían nombres, archivos, cuentas ni datos personales.
-- El receptor debe utilizarse solo dentro de la LAN; no reenvíes el puerto hacia Internet.
-- La vibración de retorno se definirá como mensaje independiente después de implementar y verificar la lectura de force feedback en Windows.
+## Mensajes Android → Windows
+- `hello`: solicita conexión.
+- `input`: estado completo de botones y ejes.
 
-Ejemplo de paquete:
+## Mensajes Windows → Android
+- `hello_ack`: confirma el saludo inicial.
+- `input_ack`: confirma que el receptor sigue procesando controles.
+
+## Entrada
+El paquete `input` contiene:
+- `buttons`: nombres de botones activos.
+- `axes`: valores normalizados entre -1 y 1 para sticks; los gatillos usan 0 a 1.
+
+Ejemplo:
 
 ```json
 {
   "type": "input",
   "version": 1,
-  "buttons": ["A"],
+  "buttons": ["A", "LB"],
   "axes": {
     "leftX": 0.0,
     "leftY": 0.0,
@@ -25,3 +32,8 @@ Ejemplo de paquete:
   }
 }
 ```
+
+## Seguridad y límites
+No envíes datos personales. El protocolo no tiene autenticación criptográfica todavía: úsalo solo en una red local de confianza y nunca reenvíes el puerto hacia Internet.
+
+La vibración de retorno requerirá un canal de eventos independiente y soporte de lectura de force feedback en Windows; todavía no forma parte de esta versión.
