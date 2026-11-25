@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     @Volatile private var host = "192.168.1.100"
     @Volatile private var connected = false
     @Volatile private var lastResponseAt = 0L
+    @Volatile private var pairingCode = ""
     @Volatile private var running = false
     private var socket: DatagramSocket? = null
     private var sender: ScheduledExecutorService? = null
@@ -41,6 +42,7 @@ class MainActivity : Activity() {
     private val axes = mutableMapOf("leftX" to 0.0, "leftY" to 0.0, "rightX" to 0.0, "rightY" to 0.0, "leftTrigger" to 0.0, "rightTrigger" to 0.0)
     private lateinit var status: TextView
     private lateinit var ipField: EditText
+    private lateinit var codeField: EditText
     private lateinit var connectButton: Button
     private var haptics = true
 
@@ -65,6 +67,15 @@ class MainActivity : Activity() {
         connection.addView(ipField, LinearLayout.LayoutParams(0, 46, 1f))
         connectButton = Button(this).apply { text = "CONECTAR"; setOnClickListener { connectToPc() } }
         connection.addView(connectButton); root.addView(connection)
+        codeField = EditText(this).apply {
+            setSingleLine(true)
+            hint = "Código de emparejamiento de Windows (6 dígitos)"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+        }
+        root.addView(codeField, LinearLayout.LayoutParams(-1, 44))
         root.addView(TextView(this).apply { text = "PC y teléfono deben estar en la misma red Wi-Fi"; textSize = 11f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
 
         val shoulders = LinearLayout(this).apply { gravity = Gravity.CENTER }
@@ -141,7 +152,9 @@ class MainActivity : Activity() {
     private fun connectToPc() {
         val candidate=ipField.text.toString().trim()
         try { InetAddress.getByName(candidate) } catch (_: Exception) { status.text="● IP NO VÁLIDA"; return }
-        disconnect(null); host=candidate
+        val enteredCode = codeField.text.toString().trim()
+        if (!enteredCode.matches(Regex("\\d{6}"))) { status.text="● INTRODUCE EL CÓDIGO DE 6 DÍGITOS"; return }
+        disconnect(null); host=candidate; pairingCode=enteredCode
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("pc_ip", host).apply()
         running=true
         try { socket=DatagramSocket().apply { soTimeout=500 } } catch (_: Exception) { running=false; status.text="● ERROR AL ABRIR RED"; return }
@@ -173,12 +186,12 @@ class MainActivity : Activity() {
         },0,33,TimeUnit.MILLISECONDS)
     }
 
-    private fun sendHello() = sendJson(JSONObject().put("type","hello").put("version",1))
+    private fun sendHello() = sendJson(JSONObject().put("type","hello").put("version",1).put("code",pairingCode))
     private fun sendState() {
         val b: List<String>; val a: Map<String,Double>
         synchronized(lock) { b=pressed.toList(); a=axes.toMap() }
         val aj=JSONObject(); a.forEach { (k,v)->aj.put(k,v) }
-        sendJson(JSONObject().put("type","input").put("version",1).put("buttons",JSONArray(b)).put("axes",aj))
+        sendJson(JSONObject().put("type","input").put("version",1).put("buttons",JSONArray(b)).put("axes",aj).put("code",pairingCode))
     }
     private fun sendJson(json: JSONObject) {
         val bytes=json.toString().toByteArray(Charsets.UTF_8)
