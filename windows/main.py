@@ -154,16 +154,16 @@ def show_network_addresses():
                         break
                 matches.append((adapter, line.strip()))
         if matches:
-            print("\\nDirecciones IPv4 detectadas en Windows:")
+            print("\nDirecciones IPv4 detectadas en Windows:")
             for adapter, address_line in matches:
                 if adapter:
                     print(" ", adapter)
                 print("   ", address_line)
             print("Usa la IPv4 del adaptador por el que está conectado el teléfono.")
         else:
-            print("\\nNo se detectaron IPv4 automáticamente. Ejecuta ipconfig en Windows.")
+            print("\nNo se detectaron IPv4 automáticamente. Ejecuta ipconfig en Windows.")
     except (OSError, subprocess.SubprocessError):
-        print("\\nNo se pudo consultar ipconfig. Ejecuta ipconfig en Windows.")
+        print("\nNo se pudo consultar ipconfig. Ejecuta ipconfig en Windows.")
 
 
 def send_json(sock, address, payload):
@@ -250,7 +250,7 @@ def main():
                 client_seen.pop(ip, None)
                 client_states.pop(ip, None)
                 paired_ips.discard(ip)
-                print("\\nTeléfono desconectado:", ip)
+                print("\nTeléfono desconectado:", ip)
             if expired:
                 buttons, axes = merge_client_states(client_states)
                 previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
@@ -261,7 +261,7 @@ def main():
                         apply_keyboard_state(set(), previous_keyboard)
                         previous_keyboard.clear()
                     previous.clear()
-                    print("\\nTodos los teléfonos desconectados: controles liberados.")
+                    print("\nTodos los teléfonos desconectados: controles liberados.")
             if data.get("type") == "hello":
                 if data.get("code") != pairing_code:
                     continue
