@@ -1,20 +1,38 @@
 # Nexora Gamepad para Android
 
-Mando táctil horizontal para un PC Windows en la misma red local.
+App de mando en horizontal. Requiere Android 8.0 o posterior.
+
+## Conexión por Wi-Fi, USB o Bluetooth
+
+En la pantalla principal puedes elegir el tipo de conexión. El selector guarda tu preferencia y muestra los pasos; los paquetes de control usan el mismo protocolo UDP y Android los envía por la interfaz de red que corresponda a la IP del PC.
+
+### Wi-Fi
+1. Conecta el PC y el teléfono a la misma red Wi-Fi.
+2. Introduce en Nexora la IPv4 del PC y el código de seis dígitos que muestra el receptor Windows.
+
+### USB
+1. Conecta el teléfono al PC con un cable USB que permita datos.
+2. En Android, abre Ajustes > Punto de acceso/Compartir Internet y activa **Anclaje USB**.
+3. En Windows, abre `ipconfig` y localiza la dirección IPv4 del adaptador de Ethernet/RNDIS creado por el teléfono.
+4. Introduce esa IPv4 en Nexora, junto con el código del receptor.
+
+### Bluetooth
+1. Empareja el teléfono y el PC desde los ajustes Bluetooth de ambos.
+2. En Android, activa **Anclaje Bluetooth** o **Compartir Internet por Bluetooth**.
+3. En Windows, conéctate a la red PAN del teléfono si no se conecta automáticamente.
+4. En Windows, abre `ipconfig` y localiza la IPv4 del adaptador de red Bluetooth.
+5. Introduce esa IPv4 en Nexora y el código del receptor.
+
+Los nombres de los menús pueden variar según la marca y la versión de Android. USB y Bluetooth PAN son conexiones de red; no son modos USB HID ni Bluetooth HID.
+
+## Emparejamiento
+El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en la app. La autorización actual se mantiene hasta reiniciar el receptor.
 
 ## Controles
-- Stick analógico izquierdo y derecho.
-- Cruceta, A/B/X/Y.
-- L1/R1, L2/R2, L3/R3, Start y Select.
-- Vibración háptica local con interruptor.\n- Ajustes de sensibilidad y zona muerta para ambos sticks, guardados en el teléfono.
+- Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
+- Ajustes de sensibilidad y zona muerta.
+- Vibración local configurable.
+- Los ajustes se guardan en el teléfono.
 
-## Conexión
-1. Ejecuta el receptor Nexora Gamepad en Windows.
-2. Asegúrate de que ambos dispositivos estén en la misma red Wi-Fi.
-3. Introduce la IPv4 local del PC.
-4. Copia en la app el código de seis dígitos que muestra el receptor de Windows.
-5. Pulsa **CONECTAR** y espera el indicador verde.
-
-La IP se guarda localmente. El código de emparejamiento no se guarda y debe introducirse para cada nueva sesión del receptor.
-
-La vibración actual es háptica local al tocar botones. La vibración de retorno del juego de Windows aún no está implementada.
+## Privacidad
+No necesita cuenta, nube ni servidores externos. Los datos de control se envían directamente al PC dentro de la conexión local elegida.
