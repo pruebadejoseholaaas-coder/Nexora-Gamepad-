@@ -205,7 +205,7 @@ def main():
             send_json(sock, address, {"type": "input_ack", "version": 1})
             now = time.monotonic()
             if now-last_notice > 2:
-                print("Controles recibidos de", last_sender, "|", "XInput activo" if pad is not None else "modo diagnóstico")
+                print("Controles recibidos de", last_sender, "|", "XInput activo" if pad is not None else ("teclado PPSSPP activo" if keyboard_mode else "modo diagnóstico"))
                 last_notice = now
     except KeyboardInterrupt:
         print("\nCerrando Nexora Gamepad...")
