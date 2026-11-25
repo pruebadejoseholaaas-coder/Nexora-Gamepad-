@@ -2,34 +2,31 @@
 
 Convierte un teléfono Android en un mando táctil para Windows mediante la red Wi-Fi local.
 
-## Funciones implementadas en esta etapa
-- Interfaz Android horizontal con botones A/B/X/Y, cruceta, L1/R1, L2/R2, Start, Select y pulsación de sticks.
-- Dos sticks analógicos táctiles.
-- Vibración háptica local activable o desactivable.
-- Conexión UDP con saludo y confirmación del receptor.
-- Señal de respuesta periódica para detectar cuando el PC deja de responder.
-- Receptor Windows con mapeo inicial a un mando virtual XInput.
-- Liberación de controles cuando se pierde el envío del teléfono o se cierra el receptor.
-- Compilación automática de APK y EXE mediante GitHub Actions.
+## Funciones en desarrollo
+- Controles Android horizontales: A/B/X/Y, cruceta, dos sticks, L1/R1, L2/R2, L3/R3, Start y Select.
+- Vibración háptica local configurable.
+- Conexión UDP con saludo, confirmación y detección de pérdida de respuesta.
+- Código de emparejamiento de seis dígitos generado por Windows.
+- Receptor Windows con mapeo a XInput y liberación automática de controles.
+- Compilaciones APK y EXE en GitHub Actions.
 
 ## Componentes
 - `android/`: aplicación Android.
 - `windows/`: receptor Windows.
 - `protocol/`: protocolo local.
-- `.github/workflows/`: compilaciones.
+- `.github/workflows/`: compilaciones y pruebas.
 
-## Pendiente de completar y verificar
-- Perfiles guardables y editor visual de asignación de botones.
-- Vibración de retorno desde el juego del PC al teléfono.
-- Emparejamiento autenticado y endurecimiento adicional de la comunicación local.
-- Pruebas reales con distintos juegos y emuladores, incluido PPSSPP.
-- Verificación de compatibilidad del controlador virtual en el equipo de destino.
+## Pendiente
+- Perfiles configurables y asignación de botones para PPSSPP y otros juegos.
+- Vibración de retorno desde el juego de Windows al teléfono.
+- Mejoras adicionales al protocolo y pruebas de interoperabilidad.
+- Pruebas reales en hardware.
 
-## Privacidad y seguridad
-No requiere cuenta, anuncios ni servicios en la nube. La comunicación se limita a la red local. No abras ni reenvíes el puerto UDP 26760 hacia Internet. Permite el acceso en el firewall solo para redes privadas. El protocolo actual todavía no incorpora emparejamiento criptográfico, por lo que debe usarse únicamente en una red local de confianza.
+## Seguridad y privacidad
+No necesita cuenta, anuncios ni nube. El receptor genera un código temporal de seis dígitos. El primer teléfono que lo presenta queda emparejado hasta reiniciar el receptor. El código se envía por UDP sin cifrado: es una protección básica para redes domésticas, no seguridad criptográfica. Usa una red Wi-Fi de confianza, no compartas el código y no expongas el puerto UDP 26760 a Internet. Autoriza el firewall solo en redes privadas.
 
 ## Estado
-Versión de desarrollo. Que GitHub Actions compile correctamente no sustituye las pruebas de funcionamiento en un teléfono y un PC reales.
+Versión de desarrollo. La compilación automatizada no sustituye pruebas reales en teléfono y PC.
 
 ## Licencia
 GPL-3.0-or-later. Consulta `LICENSE`.
