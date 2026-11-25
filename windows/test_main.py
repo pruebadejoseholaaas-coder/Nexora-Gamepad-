@@ -89,6 +89,33 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(main.keyboard_keys(set(), {"leftTrigger": 0.6}), {0x31})
         self.assertEqual(main.keyboard_keys(set(), {"rightTrigger": 0.5}), set())
 
+    def test_parse_input_ignores_unknown_axes(self):
+        parsed = main.parse_input({
+            "type": "input", "version": 1,
+            "buttons": [], "axes": {"leftX": 0.4, "unexpected": 999}
+        })
+        self.assertEqual(parsed[1], {"leftX": 0.4})
+
+    def test_expire_inactive_clients_removes_only_stale_phone(self):
+        seen = {"old": 10.0, "active": 10.8}
+        states = {
+            "old": ({"A"}, {"leftX": 1.0}, 10.0),
+            "active": ({"B"}, {"leftX": -1.0}, 10.8),
+        }
+        paired = {"old", "active"}
+        expired = main.expire_inactive_clients(seen, states, paired, now=11.2, timeout=1.0)
+        self.assertEqual(expired, ["old"])
+        self.assertEqual(set(seen), {"active"})
+        self.assertEqual(set(states), {"active"})
+        self.assertEqual(paired, {"active"})
+
+    def test_expire_inactive_clients_returns_empty_when_all_active(self):
+        seen = {"phone": 20.0}
+        states = {"phone": (set(), {}, 20.0)}
+        paired = {"phone"}
+        self.assertEqual(main.expire_inactive_clients(seen, states, paired, now=20.5), [])
+        self.assertEqual(paired, {"phone"})
+
 
 if __name__ == "__main__":
     unittest.main()
