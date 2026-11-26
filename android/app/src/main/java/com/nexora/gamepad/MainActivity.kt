@@ -340,10 +340,16 @@ class MainActivity : Activity() {
         text = label; textSize = 13f
         setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) (faceMapping[key] ?: key) else key
-                    if (outputKey == "LT") axes["leftTrigger"] = 1.0 else if (outputKey == "RT") axes["rightTrigger"] = 1.0 else pressed.add(outputKey) }; vibrateTap(); true }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
-                    if (outputKey == "LT") axes["leftTrigger"] = 0.0 else if (outputKey == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(outputKey) }; true }
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) {
+                    if (key == "LT") axes["leftTrigger"] = 1.0
+                    else if (key == "RT") axes["rightTrigger"] = 1.0
+                    else pressed.add(key)
+                }; vibrateTap(); true }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) {
+                    if (key == "LT") axes["leftTrigger"] = 0.0
+                    else if (key == "RT") axes["rightTrigger"] = 0.0
+                    else pressed.remove(key)
+                }; true }
                 else -> true
             }
         }
@@ -453,7 +459,12 @@ class MainActivity : Activity() {
     private fun sendHello() = sendJson(JSONObject().put("type","hello").put("version",1).put("code",pairingCode))
     private fun sendState() {
         val b: List<String>; val a: Map<String,Double>
-        synchronized(lock) { b=pressed.toList(); a=axes.toMap() }
+        synchronized(lock) {
+            b = pressed.map { physical ->
+                if (physical in setOf("A", "B", "X", "Y")) faceSemantic(physical) else physical
+            }.distinct()
+            a = axes.toMap()
+        }
         val aj=JSONObject(); a.forEach { (k,v)->aj.put(k,v) }
         sendJson(JSONObject().put("type","input").put("version",1).put("buttons",JSONArray(b)).put("axes",aj).put("code",pairingCode))
     }
