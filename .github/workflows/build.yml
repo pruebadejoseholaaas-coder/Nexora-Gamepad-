@@ -37,6 +37,10 @@ jobs:
         run: |
           cd android
           gradle assembleDebug
+      - name: Run Android lint
+        run: |
+          cd android
+          gradle lintDebug
       - uses: actions/upload-artifact@v4
         with:
           name: Nexora-Gamepad-Android
