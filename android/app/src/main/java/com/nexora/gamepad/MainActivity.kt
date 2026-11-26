@@ -267,10 +267,12 @@ class MainActivity : Activity() {
     private fun loadButtonMapping() {
         val prefs = getSharedPreferences("nexora_settings", MODE_PRIVATE)
         val defaults = defaultButtonMapping()
-        buttonMapping.clear()
-        mappableButtons.forEach { position ->
-            val saved = prefs.getString("profile_${activeProfile}_map_$position", defaults[position])
-            buttonMapping[position] = saved?.takeIf { it in mappableButtons } ?: defaults.getValue(position)
+        synchronized(lock) {
+            buttonMapping.clear()
+            mappableButtons.forEach { position ->
+                val saved = prefs.getString("profile_${activeProfile}_map_$position", defaults[position])
+                buttonMapping[position] = saved?.takeIf { it in mappableButtons } ?: defaults.getValue(position)
+            }
         }
     }
 
@@ -315,12 +317,14 @@ class MainActivity : Activity() {
             .setView(scroll)
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Guardar") { _, _ ->
-                synchronized(lock) { pressed.removeAll(mappableButtons.toSet()) }
                 val editor = getSharedPreferences("nexora_settings", MODE_PRIVATE).edit()
-                spinners.forEach { (position, spinner) ->
-                    val mapped = spinner.selectedItem.toString()
-                    buttonMapping[position] = mapped
-                    editor.putString("profile_${activeProfile}_map_$position", mapped)
+                synchronized(lock) {
+                    pressed.removeAll(mappableButtons.toSet())
+                    spinners.forEach { (position, spinner) ->
+                        val mapped = spinner.selectedItem.toString()
+                        buttonMapping[position] = mapped
+                        editor.putString("profile_${activeProfile}_map_$position", mapped)
+                    }
                 }
                 editor.apply()
                 updateFaceLayout()
