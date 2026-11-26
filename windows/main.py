@@ -4,6 +4,7 @@ import secrets
 import socket
 import subprocess
 import sys
+import threading
 import time
 
 PORT = 26760
@@ -185,6 +186,22 @@ def send_json(sock, address, payload):
     except OSError:
         pass
 
+
+def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120):
+    """Convert XInput motor values into a bounded Android haptics message."""
+    large = clamp(large_motor, 0, 255)
+    small = clamp(small_motor, 0, 255)
+    strength = max(large, small) / 255.0
+    duration = max(0, min(500, int(duration_ms)))
+    return {
+        "type": "rumble",
+        "version": 1,
+        "code": pairing_code,
+        "strength": strength,
+        "durationMs": duration,
+    }
+
+
 def main():
     pad = None
     keyboard_mode = False
@@ -213,9 +230,30 @@ def main():
     paired_ips = set()
     client_states = {}
     client_seen = {}
+    client_addresses = {}
+    clients_lock = threading.Lock()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(PACKET_TIMEOUT_SECONDS)
     sock.bind((HOST, PORT))
+
+    rumble_callback = None
+    if pad is not None and hasattr(pad, "register_notification"):
+        def on_game_rumble(client, target, large_motor, small_motor, led_number, user_data):
+            message = build_rumble_message(pairing_code, large_motor, small_motor)
+            if message["strength"] <= 0:
+                return
+            with clients_lock:
+                destinations = list(client_addresses.values())
+            for destination in destinations:
+                send_json(sock, destination, message)
+
+        try:
+            pad.register_notification(callback_function=on_game_rumble)
+            rumble_callback = on_game_rumble
+            print("Vibración de juegos habilitada para teléfonos emparejados.")
+        except Exception as exc:
+            print("La retroalimentación de vibración no está disponible:", exc)
+
     print("Nexora Gamepad escucha en UDP", PORT)
     print("Código de emparejamiento (introdúcelo en Android):", pairing_code)
     print("Hasta cuatro teléfonos pueden usar el mismo código y quedar emparejados hasta reiniciar el receptor.")
@@ -234,6 +272,10 @@ def main():
             except socket.timeout:
                 now = time.monotonic()
                 expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
+                if expired:
+                    with clients_lock:
+                        for ip in expired:
+                            client_addresses.pop(ip, None)
                 for ip in expired:
                     print("\nTeléfono desconectado:", ip)
                 if expired:
@@ -256,6 +298,10 @@ def main():
                 continue
             now = time.monotonic()
             expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
+            if expired:
+                with clients_lock:
+                    for ip in expired:
+                        client_addresses.pop(ip, None)
             for ip in expired:
                 print("\nTeléfono desconectado:", ip)
             if expired:
@@ -280,6 +326,8 @@ def main():
                     client_states[address[0]] = (set(), {}, time.monotonic())
                     print("\nTeléfono emparejado:", address[0], "|", len(paired_ips), "de", MAX_CLIENTS)
                 client_seen[address[0]] = time.monotonic()
+                with clients_lock:
+                    client_addresses[address[0]] = address
                 send_json(sock, address, {"type": "hello_ack", "version": 1, "name": "Nexora Gamepad"})
                 continue
             if address[0] not in paired_ips or data.get("code") != pairing_code:
@@ -291,6 +339,8 @@ def main():
             now = time.monotonic()
             client_states[address[0]] = (buttons, axes, now)
             client_seen[address[0]] = now
+            with clients_lock:
+                client_addresses[address[0]] = address
             merged_buttons, merged_axes = merge_client_states(client_states)
             previous_keyboard = apply_controls(pad, keyboard_mode, merged_buttons, merged_axes, previous, previous_keyboard)
             previous = merged_buttons
@@ -302,6 +352,13 @@ def main():
     except KeyboardInterrupt:
         print("\nCerrando Nexora Gamepad...")
     finally:
+        if rumble_callback is not None:
+            try:
+                pad.unregister_notification()
+            except Exception:
+                pass
+        with clients_lock:
+            client_addresses.clear()
         release_all(pad)
         if previous_keyboard:
             apply_keyboard_state(set(), previous_keyboard)
