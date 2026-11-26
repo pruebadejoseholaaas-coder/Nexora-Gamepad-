@@ -8,7 +8,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - Controles Android horizontales: A/B/X/Y, cruceta, dos sticks, L1/R1, L2/R2, L3/R3, Start y Select.
 - Vibración háptica local configurable y recepción de vibración de retorno desde juegos cuando el backend XInput de Windows admite notificaciones.
 - Perfiles Android: General, PPSSPP, Acción y Personal, con sensibilidad, zona muerta, diseño Xbox/Nintendo y asignación de botones guardados por separado.
-- Editor visual para reasignar los botones frontales A/B/X/Y.
+- Editor visual para reasignar 14 controles digitales: A/B/X/Y, cruceta, L1/R1, Select/Start y pulsaciones L3/R3; permite asignaciones repetidas y guarda los cambios por perfil.
 - Conexión UDP local con emparejamiento, confirmación, reconexión y detección de pérdida de respuesta.
 - Código temporal de emparejamiento de seis dígitos generado por Windows y limitación de intentos incorrectos por IP.
 - Receptor Windows con salida XInput opcional (requiere un controlador virtual compatible instalado) y liberación automática de controles.
@@ -24,7 +24,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - `.github/workflows/`: compilaciones y pruebas.
 
 ## Pendiente antes de considerarla terminada
-- Resolver una alternativa de mando virtual XInput para Windows que no dependa de ViGEmBus, cuyo proyecto original está archivado. El modo teclado sigue disponible como alternativa.
+- Integrar y validar un backend XInput moderno opcional. HIDMaestro es una alternativa MIT prometedora, pero requiere instalación de componentes de controlador con privilegios de administrador y aún debe pasar una revisión de compatibilidad, seguridad y experiencia de desinstalación antes de incorporarse. El modo teclado sigue disponible como alternativa.
 - Validar la conexión real en Wi-Fi, USB tethering y Bluetooth PAN en distintos equipos.
 - Validar controles, reconexión y vibración con teléfonos y juegos reales.
 - Mejorar la experiencia de instalación y configuración de Windows.
