@@ -1,6 +1,6 @@
 # Nexora Gamepad para Android
 
-Versión de desarrollo: **0.5.0**.
+Versión de desarrollo: **0.6.0**.
 
 App de mando en horizontal. Requiere Android 8.0 o posterior.
 
@@ -28,7 +28,7 @@ En la pantalla principal puedes elegir el tipo de conexión. El selector guarda 
 Los nombres de los menús pueden variar según la marca y la versión de Android. USB y Bluetooth PAN son conexiones de red; no son modos USB HID ni Bluetooth HID.
 
 ## Emparejamiento
-El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en cada teléfono que quieras conectar. Se permiten hasta cuatro teléfonos por sesión y todos comparten el mismo mando del PC; los botones se combinan y los ejes se mezclan usando el valor de mayor magnitud.
+El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en cada teléfono que quieras conectar. Se permiten hasta cuatro teléfonos por sesión y todos comparten el mismo mando del PC; los botones se combinan y los ejes se mezclan usando el valor de mayor magnitud. Los intentos incorrectos se limitan por dirección IP durante una ventana temporal para dificultar pruebas repetidas del código.
 
 ## Controles y perfiles
 - Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
@@ -37,9 +37,8 @@ El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo e
 - Puedes alternar entre diseño Xbox y Nintendo; cambian las asignaciones predeterminadas.
 - El botón **MAPEAR** abre un editor visual para asignar A, B, X o Y a cada botón frontal. La configuración se guarda por perfil.
 - Los perfiles se seleccionan manualmente; no detectan automáticamente el juego abierto en Windows.
-- Vibración local configurable.
-- Vibración háptica local configurable y recepción de vibración de retorno desde Windows: solo acepta mensajes de la IP del PC configurado y el código de sesión, con duración máxima de 500 ms y límite de frecuencia. El envío desde Windows requiere un backend XInput compatible que notifique los eventos de vibración.
+- Vibración local configurable y recepción de vibración de retorno desde Windows: solo acepta mensajes de la IP del PC configurado y el código de sesión, con duración máxima de 500 ms y límite de frecuencia. El envío desde Windows requiere un backend XInput compatible que notifique los eventos de vibración.
 - Los ajustes se guardan en el teléfono.
 
 ## Privacidad
-No necesita cuenta, nube ni servidores externos. Los datos de control se envían directamente al PC dentro de la conexión local elegida.
+No necesita cuenta, nube ni servidores externos. Los datos de control se envían directamente al PC dentro de la conexión local elegida. El protocolo UDP no cifra los datos; úsalo únicamente en una red de confianza.
