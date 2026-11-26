@@ -36,6 +36,7 @@ El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo e
 - El botón **MAPEAR** abre un editor visual para asignar A, B, X o Y a cada botón frontal. La configuración se guarda por perfil.
 - Los perfiles se seleccionan manualmente; no detectan automáticamente el juego abierto en Windows.
 - Vibración local configurable.
+- Recepción preparada para vibración de retorno desde Windows: solo acepta mensajes del PC conectado con el código de sesión, duración máxima de 500 ms y límite de frecuencia. La emisión desde los juegos de Windows todavía está pendiente.
 - Los ajustes se guardan en el teléfono.
 
 ## Privacidad
