@@ -26,4 +26,4 @@ El backend actual usa `vgamepad`. Su funcionamiento depende de un controlador vi
 USB y Bluetooth PAN transportan tráfico de red; Nexora todavía no implementa USB HID ni Bluetooth HID/RFCOMM nativo.
 
 ## Seguridad
-El código temporal dificulta conexiones casuales y los intentos incorrectos se limitan por IP. El protocolo UDP no cifra el tráfico. No compartas el código, no abras el puerto 26760 hacia Internet y evita redes públicas. Cierra el receptor al terminar.
+El código temporal dificulta conexiones casuales, los intentos incorrectos se limitan por IP y el receptor acota la memoria usada para registrar direcciones que fallan el emparejamiento. También valida y normaliza los ejes recibidos y descarta estructuras de entrada fuera de los límites. El protocolo UDP no cifra el tráfico. No compartas el código, no abras el puerto 26760 hacia Internet y evita redes públicas. Cierra el receptor al terminar.
