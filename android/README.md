@@ -33,9 +33,9 @@ El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo e
 ## Controles y perfiles
 - Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
 - Perfiles locales: General, PPSSPP, Acción y Personal.
-- Cada perfil guarda su propia sensibilidad, zona muerta y diseño de botones frontales.
+- Cada perfil guarda su propia sensibilidad, zona muerta, diseño Xbox/Nintendo y asignación personalizada de controles.
 - Puedes alternar entre diseño Xbox y Nintendo; cambian las asignaciones predeterminadas.
-- El botón **MAPEAR** abre un editor visual para asignar A, B, X o Y a cada botón frontal. La configuración se guarda por perfil.
+- El botón **MAPEAR** abre un editor visual para reasignar los 14 controles digitales: A/B/X/Y, cruceta, L1/R1, Select/Start y pulsaciones L3/R3. Puedes repetir una misma señal en varios controles; la configuración se guarda por perfil.
 - Los perfiles se seleccionan manualmente; no detectan automáticamente el juego abierto en Windows.
 - Vibración local configurable y recepción de vibración de retorno desde Windows: solo acepta mensajes de la IP del PC configurado y el código de sesión, con duración máxima de 500 ms y límite de frecuencia. El envío desde Windows requiere un backend XInput compatible que notifique los eventos de vibración.
 - Los ajustes se guardan en el teléfono.
