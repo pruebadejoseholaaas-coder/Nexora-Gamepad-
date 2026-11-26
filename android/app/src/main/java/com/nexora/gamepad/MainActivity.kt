@@ -19,6 +19,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Spinner
+import android.widget.ScrollView
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import org.json.JSONArray
@@ -64,7 +65,7 @@ class MainActivity : Activity() {
     private var faceLayout = "XBOX"
     private lateinit var faceLayoutButton: Button
     private val faceButtons = mutableMapOf<String, Button>()
-    private val faceMapping = mutableMapOf("A" to "A", "B" to "B", "X" to "X", "Y" to "Y")
+    private val buttonMapping = mutableMapOf<String, String>()
     private lateinit var sensitivityControl: SeekBar
     private lateinit var deadzoneControl: SeekBar
 
@@ -79,7 +80,7 @@ class MainActivity : Activity() {
             .takeIf { it in setOf("GENERAL", "PPSSPP", "ACCION", "PERSONAL") } ?: "GENERAL"
         faceLayout = (preferences.getString("profile_${activeProfile}_face_layout", "XBOX") ?: "XBOX")
             .takeIf { it in setOf("XBOX", "NINTENDO") } ?: "XBOX"
-        loadFaceMapping()
+        loadButtonMapping()
         val profileDefaults = profileValues(activeProfile)
         stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first).coerceIn(0.5f, 1.5f)
         stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second).coerceIn(0.0f, 0.25f)
@@ -241,32 +242,41 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun faceSemantic(position: String): String = faceMapping[position] ?: position
+    private fun mappedButton(position: String): String = buttonMapping[position] ?: position
 
     private fun faceButton(position: String): Button {
         val button = controlButton(position, position)
-        button.text = faceSemantic(position)
+        button.text = mappedButton(position)
         faceButtons[position] = button
         return button
     }
 
-    private fun defaultFaceMapping(): Map<String, String> = if (faceLayout == "NINTENDO") {
-        mapOf("A" to "B", "B" to "A", "X" to "Y", "Y" to "X")
-    } else mapOf("A" to "A", "B" to "B", "X" to "X", "Y" to "Y")
+    private val mappableButtons = listOf("A", "B", "X", "Y", "UP", "DOWN", "LEFT", "RIGHT", "LB", "RB", "BACK", "START", "LS", "RS")
 
-    private fun loadFaceMapping() {
+    private fun defaultButtonMapping(): Map<String, String> {
+        val defaults = mappableButtons.associateWith { it }.toMutableMap()
+        if (faceLayout == "NINTENDO") {
+            defaults["A"] = "B"
+            defaults["B"] = "A"
+            defaults["X"] = "Y"
+            defaults["Y"] = "X"
+        }
+        return defaults
+    }
+
+    private fun loadButtonMapping() {
         val prefs = getSharedPreferences("nexora_settings", MODE_PRIVATE)
-        val defaults = defaultFaceMapping()
-        faceMapping.clear()
-        listOf("A", "B", "X", "Y").forEach { position ->
+        val defaults = defaultButtonMapping()
+        buttonMapping.clear()
+        mappableButtons.forEach { position ->
             val saved = prefs.getString("profile_${activeProfile}_map_$position", defaults[position])
-            faceMapping[position] = saved?.takeIf { it in setOf("A", "B", "X", "Y") } ?: defaults.getValue(position)
+            buttonMapping[position] = saved?.takeIf { it in mappableButtons } ?: defaults.getValue(position)
         }
     }
 
     private fun updateFaceLayout() {
         faceButtons.forEach { (position, button) ->
-            val mapped = faceMapping[position] ?: position
+            val mapped = buttonMapping[position] ?: position
             button.text = if (mapped == position) position else "$position -> $mapped"
         }
         if (::faceLayoutButton.isInitialized) faceLayoutButton.text = if (faceLayout == "NINTENDO") "DISEÑO: NINTENDO" else "DISEÑO: XBOX"
@@ -281,34 +291,35 @@ class MainActivity : Activity() {
     }
 
     private fun showButtonMappingEditor() {
-        val choices = listOf("A", "B", "X", "Y")
+        val choices = mappableButtons
         val spinners = linkedMapOf<String, Spinner>()
         val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 12, 24, 4) }
         choices.forEach { position ->
             val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
             row.addView(TextView(this).apply {
-                text = "Botón $position"
+                text = "Control $position"
                 setTextColor(Color.BLACK)
                 textSize = 15f
             }, LinearLayout.LayoutParams(0, 48, 1f))
             val spinner = Spinner(this)
             spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, choices)
-            spinner.setSelection(choices.indexOf(faceMapping[position]).coerceAtLeast(0))
+            spinner.setSelection(choices.indexOf(buttonMapping[position]).coerceAtLeast(0))
             spinners[position] = spinner
             row.addView(spinner, LinearLayout.LayoutParams(120, 48))
             panel.addView(row)
         }
+        val scroll = ScrollView(this).apply { addView(panel) }
         AlertDialog.Builder(this)
-            .setTitle("Asignación de botones")
-            .setMessage("Elige qué señal enviará cada botón. Se guarda en el perfil actual.")
-            .setView(panel)
+            .setTitle("Asignación de controles")
+            .setMessage("Personaliza botones, cruceta y pulsaciones de los sticks. Se guarda en el perfil actual.")
+            .setView(scroll)
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Guardar") { _, _ ->
                 synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
                 val editor = getSharedPreferences("nexora_settings", MODE_PRIVATE).edit()
                 spinners.forEach { (position, spinner) ->
                     val mapped = spinner.selectedItem.toString()
-                    faceMapping[position] = mapped
+                    buttonMapping[position] = mapped
                     editor.putString("profile_${activeProfile}_map_$position", mapped)
                 }
                 editor.apply()
@@ -480,9 +491,7 @@ class MainActivity : Activity() {
     private fun sendState() {
         val b: List<String>; val a: Map<String,Double>
         synchronized(lock) {
-            b = pressed.map { physical ->
-                if (physical in setOf("A", "B", "X", "Y")) faceSemantic(physical) else physical
-            }.distinct()
+            b = pressed.map { physical -> buttonMapping[physical] ?: physical }.distinct()
             a = axes.toMap()
         }
         val aj=JSONObject(); a.forEach { (k,v)->aj.put(k,v) }
