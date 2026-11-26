@@ -341,7 +341,7 @@ def main():
             client_states[client_id] = (buttons, axes, now)
             client_seen[client_id] = now
             with clients_lock:
-                client_addresses[address[0]] = address
+                client_addresses[client_id] = address
             merged_buttons, merged_axes = merge_client_states(client_states)
             previous_keyboard = apply_controls(pad, keyboard_mode, merged_buttons, merged_axes, previous, previous_keyboard)
             previous = merged_buttons
