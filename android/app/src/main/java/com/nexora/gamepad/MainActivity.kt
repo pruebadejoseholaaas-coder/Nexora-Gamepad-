@@ -56,6 +56,9 @@ class MainActivity : Activity() {
     private val transportButtons = mutableMapOf<String, Button>()
     private val profileButtons = mutableMapOf<String, Button>()
     private var activeProfile = "GENERAL"
+    private var faceLayout = "XBOX"
+    private lateinit var faceLayoutButton: Button
+    private val faceButtons = mutableMapOf<String, Button>()
     private lateinit var sensitivityControl: SeekBar
     private lateinit var deadzoneControl: SeekBar
 
@@ -67,6 +70,7 @@ class MainActivity : Activity() {
         haptics = preferences.getBoolean("haptics", true)
         transport = preferences.getString("transport", "WIFI") ?: "WIFI"
         activeProfile = preferences.getString("active_profile", "GENERAL") ?: "GENERAL"
+        faceLayout = preferences.getString("profile_${activeProfile}_face_layout", "XBOX") ?: "XBOX"
         val profileDefaults = profileValues(activeProfile)
         stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first)
         stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second)
@@ -180,14 +184,16 @@ class MainActivity : Activity() {
         game.addView(center, LinearLayout.LayoutParams(0,-1,1f))
 
         val face = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(controlButton("Y","Y"), LinearLayout.LayoutParams(54,48))
-        val row2 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row2.addView(controlButton("X","X"), LinearLayout.LayoutParams(68,60)); row2.addView(controlButton("B","B"), LinearLayout.LayoutParams(68,60))
-        val row3 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row3.addView(controlButton("A","A"), LinearLayout.LayoutParams(68,60))
+        val row1 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row1.addView(faceButton("Y"), LinearLayout.LayoutParams(54,48))
+        val row2 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row2.addView(faceButton("X"), LinearLayout.LayoutParams(68,60)); row2.addView(faceButton("B"), LinearLayout.LayoutParams(68,60))
+        val row3 = LinearLayout(this).apply { gravity = Gravity.CENTER }; row3.addView(faceButton("A"), LinearLayout.LayoutParams(68,60))
         face.addView(row1); face.addView(row2); face.addView(row3)
         game.addView(face, LinearLayout.LayoutParams(0,-1,1f))
         root.addView(game, LinearLayout.LayoutParams(-1,0,1f))
 
         val footer = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        faceLayoutButton = Button(this).apply { textSize = 9f; setOnClickListener { toggleFaceLayout() } }
+        footer.addView(faceLayoutButton)
         footer.addView(Button(this).apply { text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA"; setOnClickListener { haptics = !haptics; getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply(); text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
@@ -211,6 +217,8 @@ class MainActivity : Activity() {
         preferences.edit().putString("active_profile", profile).apply()
         if (::sensitivityControl.isInitialized) sensitivityControl.progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0, 100)
         if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
+        faceLayout = preferences.getString("profile_${profile}_face_layout", "XBOX") ?: "XBOX"
+        updateFaceLayout()
         profileButtons.forEach { (key, button) ->
             val selected = key == profile
             button.backgroundTintList = ColorStateList.valueOf(
@@ -219,6 +227,28 @@ class MainActivity : Activity() {
             button.setTextColor(Color.WHITE)
             button.alpha = if (selected) 1.0f else 0.78f
         }
+    }
+
+    private fun faceButton(position: String): Button {
+        val button = controlButton(faceSemantic(position), faceSemantic(position))
+        faceButtons[position] = button
+        return button
+    }
+
+    private fun faceSemantic(position: String): String {
+        if (faceLayout != "NINTENDO") return position
+        return when (position) { "A" -> "B"; "B" -> "A"; "X" -> "Y"; "Y" -> "X"; else -> position }
+    }
+
+    private fun updateFaceLayout() {
+        faceButtons.forEach { (position, button) -> button.text = faceSemantic(position) }
+        if (::faceLayoutButton.isInitialized) faceLayoutButton.text = if (faceLayout == "NINTENDO") "DISEÑO: NINTENDO" else "DISEÑO: XBOX"
+    }
+
+    private fun toggleFaceLayout() {
+        faceLayout = if (faceLayout == "XBOX") "NINTENDO" else "XBOX"
+        getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("profile_${activeProfile}_face_layout", faceLayout).apply()
+        updateFaceLayout()
     }
 
     private fun updateTransportHelp() {
@@ -247,10 +277,11 @@ class MainActivity : Activity() {
 
     private fun controlButton(label: String, key: String) = Button(this).apply {
         text = label; textSize = 13f
+        val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
         setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) { if (key == "LT") axes["leftTrigger"] = 1.0 else if (key == "RT") axes["rightTrigger"] = 1.0 else pressed.add(key) }; vibrateTap(); true }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { if (key == "LT") axes["leftTrigger"] = 0.0 else if (key == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(key) }; true }
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) { if (outputKey == "LT") axes["leftTrigger"] = 1.0 else if (outputKey == "RT") axes["rightTrigger"] = 1.0 else pressed.add(outputKey) }; vibrateTap(); true }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { if (outputKey == "LT") axes["leftTrigger"] = 0.0 else if (outputKey == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(outputKey) }; true }
                 else -> true
             }
         }
