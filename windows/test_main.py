@@ -59,7 +59,17 @@ class ProtocolTests(unittest.TestCase):
         count = main.forward_rumble(sock, addresses, FakeLock(), message)
         self.assertEqual(count, 4)
         self.assertEqual({address for _, address in sock.sent}, set(addresses.values()))
-        self.assertTrue(all(payload for payload, _ in sock.sent))
+        decoded = [json.loads(payload.decode("utf-8")) for payload, _ in sock.sent]
+        self.assertEqual(decoded, [message] * 4)
+
+        sock.sent.clear()
+        stop_message = {"type": "rumble", "version": 1, "strength": 0.0, "durationMs": 0}
+        count = main.forward_rumble(sock, addresses, FakeLock(), stop_message)
+        self.assertEqual(count, 4)
+        self.assertEqual(
+            [json.loads(payload.decode("utf-8")) for payload, _ in sock.sent],
+            [stop_message] * 4,
+        )
 
     def test_rumble_forwarding_with_no_paired_phones_sends_nothing(self):
         class FakeSocket:

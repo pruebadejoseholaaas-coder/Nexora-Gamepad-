@@ -5,7 +5,7 @@
         android:allowBackup="false"
         android:label="Nexora Gamepad"
         android:theme="@android:style/Theme.Material.NoActionBar"
-        android:usesCleartextTraffic="true">
+        >
         <activity
             android:name=".MainActivity"
             android:screenOrientation="landscape"
