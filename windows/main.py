@@ -187,6 +187,15 @@ def send_json(sock, address, payload):
         pass
 
 
+def forward_rumble(sock, client_addresses, clients_lock, message):
+    """Forward one game rumble event to a snapshot of all paired UDP endpoints."""
+    with clients_lock:
+        destinations = list(client_addresses.values())
+    for destination in destinations:
+        send_json(sock, destination, message)
+    return len(destinations)
+
+
 def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120):
     """Convert XInput motor values into a bounded Android haptics message."""
     large = clamp(large_motor, 0, 255)
@@ -241,10 +250,7 @@ def main():
         def on_game_rumble(client, target, large_motor, small_motor, led_number, user_data):
             message = build_rumble_message(pairing_code, large_motor, small_motor)
             # Forward zero-strength events so Android can cancel haptics immediately.
-            with clients_lock:
-                destinations = list(client_addresses.values())
-            for destination in destinations:
-                send_json(sock, destination, message)
+            forward_rumble(sock, client_addresses, clients_lock, message)
 
         try:
             pad.register_notification(callback_function=on_game_rumble)

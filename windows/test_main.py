@@ -35,6 +35,50 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(main.build_rumble_message("123456", 100, 0, "invalid")["durationMs"], 0)
         self.assertEqual(main.build_rumble_message("123456", 100, 0, float("nan"))["durationMs"], 0)
 
+    def test_rumble_is_forwarded_to_each_paired_udp_endpoint(self):
+        class FakeSocket:
+            def __init__(self):
+                self.sent = []
+            def sendto(self, payload, address):
+                self.sent.append((payload, address))
+
+        class FakeLock:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        sock = FakeSocket()
+        addresses = {
+            ("192.168.1.50", 41001): ("192.168.1.50", 41001),
+            ("192.168.1.50", 41002): ("192.168.1.50", 41002),
+            ("192.168.1.50", 41003): ("192.168.1.50", 41003),
+            ("192.168.1.50", 41004): ("192.168.1.50", 41004),
+        }
+        message = {"type": "rumble", "version": 1, "strength": 0.5, "durationMs": 120}
+        count = main.forward_rumble(sock, addresses, FakeLock(), message)
+        self.assertEqual(count, 4)
+        self.assertEqual({address for _, address in sock.sent}, set(addresses.values()))
+        self.assertTrue(all(payload for payload, _ in sock.sent))
+
+    def test_rumble_forwarding_with_no_paired_phones_sends_nothing(self):
+        class FakeSocket:
+            def __init__(self):
+                self.sent = []
+            def sendto(self, payload, address):
+                self.sent.append((payload, address))
+
+        class FakeLock:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+
+        sock = FakeSocket()
+        count = main.forward_rumble(sock, {}, FakeLock(), {"type": "rumble"})
+        self.assertEqual(count, 0)
+        self.assertEqual(sock.sent, [])
+
     def test_accepts_valid_input(self):
         parsed = main.parse_input({
             "type": "input",
