@@ -192,7 +192,7 @@ def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120
     large = clamp(large_motor, 0, 255)
     small = clamp(small_motor, 0, 255)
     strength = max(large, small) / 255.0
-    duration = max(0, min(500, int(duration_ms)))
+    duration = int(clamp(duration_ms, 0, 500))
     return {
         "type": "rumble",
         "version": 1,

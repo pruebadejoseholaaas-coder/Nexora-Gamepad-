@@ -1,5 +1,7 @@
 # Nexora Gamepad
 
+Versión de desarrollo: **0.5.0**.
+
 Convierte uno o varios teléfonos Android en un mando táctil para Windows mediante una conexión de red local.
 
 ## Funciones en desarrollo
@@ -23,7 +25,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 
 ## Pendiente
 - Editor visual para reasignar cada botón a una tecla o acción configurable por juego.
-- Reenvío de vibración del juego desde Windows a los teléfonos emparejados cuando el backend XInput instalado admite notificaciones de vibración.
+- Reenvío de vibración del juego desde Windows a los teléfonos emparejados cuando el backend XInput instalado admite notificaciones de vibración (compilado y cubierto por pruebas; falta validación física).
 - Un backend de mando virtual para Windows que no dependa de ViGEmBus, cuyo proyecto original está archivado.
 - Pruebas adicionales de interoperabilidad entre Wi-Fi, USB tethering y Bluetooth PAN.
 - Pruebas reales en hardware.

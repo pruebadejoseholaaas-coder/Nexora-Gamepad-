@@ -28,6 +28,10 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(message["strength"], 0.0)
         self.assertEqual(message["durationMs"], 0)
 
+    def test_rumble_message_handles_non_numeric_and_non_finite_duration(self):
+        self.assertEqual(main.build_rumble_message("123456", 100, 0, "invalid")["durationMs"], 0)
+        self.assertEqual(main.build_rumble_message("123456", 100, 0, float("nan"))["durationMs"], 0)
+
     def test_accepts_valid_input(self):
         parsed = main.parse_input({
             "type": "input",
