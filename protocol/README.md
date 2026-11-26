@@ -21,4 +21,4 @@ El código se transmite sin cifrado; es una barrera básica para redes locales d
 
 USB y Bluetooth PAN son transportes de red compartida; el protocolo actual no implementa USB HID, Bluetooth HID ni Bluetooth RFCOMM nativo.
 
-Los perfiles y el diseño Xbox/Nintendo se gestionan localmente en Android; el protocolo recibe los nombres de botones ya adaptados. Android ya puede recibir mensajes `rumble` autenticados de forma básica con el código de sesión, con intensidad y duración limitadas. La integración del evento de vibración del juego en Windows aún está pendiente; por tanto, esta recepción no significa que los juegos ya hagan vibrar el teléfono.
+Los perfiles y el diseño Xbox/Nintendo se gestionan localmente en Android; el protocolo recibe los nombres de botones ya adaptados. Android recibe mensajes `rumble` con intensidad y duración limitadas. Cuando Windows inicia un mando XInput mediante `vgamepad` y el controlador instalado admite notificaciones de vibración, el receptor reenvía esos eventos a los teléfonos emparejados. Esta función no está disponible en modo teclado ni en modo diagnóstico.
