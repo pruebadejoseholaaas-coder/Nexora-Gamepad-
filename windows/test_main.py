@@ -234,5 +234,34 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(paired, {"phone"})
 
 
+    def test_pairing_limiter_caps_tracked_ip_memory(self):
+        limiter = main.PairingAttemptLimiter(max_attempts=2, window_seconds=30, max_tracked_ips=2)
+        limiter.record_failure("192.168.1.1", now=100)
+        limiter.record_failure("192.168.1.2", now=101)
+        limiter.record_failure("192.168.1.3", now=102)
+        self.assertLessEqual(len(limiter.failures), 2)
+        self.assertNotIn("192.168.1.1", limiter.failures)
+        self.assertIn("192.168.1.3", limiter.failures)
+
+    def test_parse_input_clamps_and_normalizes_axes(self):
+        parsed = main.parse_input({
+            "type": "input", "version": 1, "buttons": ["A"],
+            "axes": {"leftX": 4, "leftY": float("nan"),
+                     "leftTrigger": -2, "rightTrigger": "0.75"}
+        })
+        self.assertEqual(parsed[0], {"A"})
+        self.assertEqual(parsed[1], {
+            "leftX": 1.0, "leftY": 0.0,
+            "leftTrigger": 0.0, "rightTrigger": 0.75
+        })
+
+    def test_parse_input_rejects_oversized_collections(self):
+        self.assertIsNone(main.parse_input({
+            "type": "input", "version": 1, "buttons": ["A"] * 33, "axes": {}
+        }))
+        self.assertIsNone(main.parse_input({
+            "type": "input", "version": 1, "buttons": [], "axes": {str(i): i for i in range(17)}
+        }))
+
 if __name__ == "__main__":
     unittest.main()
