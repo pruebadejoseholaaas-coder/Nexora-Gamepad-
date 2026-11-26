@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     @Volatile private var connected = false
     @Volatile private var lastResponseAt = 0L
     @Volatile private var lastHelloAt = 0L
+    @Volatile private var lastRumbleAt = 0L
     @Volatile private var rejectedByServer = false
     @Volatile private var pairingCode = ""
     @Volatile private var running = false
@@ -416,6 +417,18 @@ class MainActivity : Activity() {
                                     connectButton.text = "CONECTADO"
                                 }
                             }
+                            "rumble" -> {
+                                if (connected && response.optString("code") == pairingCode) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastRumbleAt >= 100L) {
+                                        lastRumbleAt = now
+                                        val rawStrength = response.optDouble("strength", 0.0)
+                                        val strength = if (rawStrength.isFinite()) rawStrength.coerceIn(0.0, 1.0) else 0.0
+                                        val duration = response.optLong("durationMs", 0L).coerceIn(0L, 500L)
+                                        if (strength > 0.0 && duration > 0L) vibrateRumble(duration, strength)
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (_: SocketTimeoutException) { } catch (_: Exception) { if (running) runOnUiThread { status.text="● ERROR DE RED" } }
@@ -449,6 +462,20 @@ class MainActivity : Activity() {
         synchronized(lock) { pressed.clear(); axes.keys.forEach { axes[it]=0.0 } }
         if (message!=null && ::status.isInitialized) { status.text="● "+message; status.setTextColor(Color.rgb(255,190,90)); connectButton.text="CONECTAR" }
     }
+    @Suppress("DEPRECATION")
+    private fun vibrateRumble(durationMs: Long, strength: Double) {
+        if (!haptics) return
+        try {
+            val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= 31) getSystemService(VibratorManager::class.java).defaultVibrator else getSystemService(VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= 26) {
+                val amplitude = (strength * 255.0).toInt().coerceIn(1, 255)
+                vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude))
+            } else {
+                vibrator.vibrate(durationMs)
+            }
+        } catch (_: Exception) { }
+    }
+
     @Suppress("DEPRECATION")
     private fun vibrateTap() {
         if (!haptics) return
