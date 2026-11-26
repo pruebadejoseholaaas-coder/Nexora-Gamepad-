@@ -247,6 +247,7 @@ class MainActivity : Activity() {
     }
 
     private fun toggleFaceLayout() {
+        synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
         faceLayout = if (faceLayout == "XBOX") "NINTENDO" else "XBOX"
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("profile_${activeProfile}_face_layout", faceLayout).apply()
         updateFaceLayout()
