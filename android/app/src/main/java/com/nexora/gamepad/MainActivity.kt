@@ -201,7 +201,7 @@ class MainActivity : Activity() {
         faceLayoutButton = Button(this).apply { textSize = 9f; setOnClickListener { toggleFaceLayout() } }
         footer.addView(faceLayoutButton)
         footer.addView(Button(this).apply { text = "MAPEAR"; textSize = 9f; setOnClickListener { showButtonMappingEditor() } })
-        footer.addView(Button(this).apply { text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA"; setOnClickListener { haptics = !haptics; getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply(); text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
+        footer.addView(Button(this).apply { text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA"; setOnClickListener { haptics = !haptics; if (!haptics) stopRumble(); getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply(); text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
         setContentView(root)
@@ -396,7 +396,7 @@ class MainActivity : Activity() {
                 try {
                     val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
-                    if (packet.address.hostAddress == InetAddress.getByName(host).hostAddress) {
+                    if (packet.address.hostAddress == InetAddress.getByName(host).hostAddress && packet.port == port) {
                         when (response.optString("type")) {
                             "busy" -> {
                                 rejectedByServer = true
@@ -440,7 +440,7 @@ class MainActivity : Activity() {
             if (running) {
                 if (connected && System.currentTimeMillis() - lastResponseAt > 2500) {
                     connected = false
-                    runOnUiThread { status.text = "● PC SIN RESPUESTA"; status.setTextColor(Color.rgb(255,190,90)); connectButton.text = "REINTENTANDO..." }
+                    runOnUiThread { stopRumble(); status.text = "● PC SIN RESPUESTA"; status.setTextColor(Color.rgb(255,190,90)); connectButton.text = "REINTENTANDO..." }
                 }
                 if (connected) sendState() else if (!rejectedByServer && System.currentTimeMillis() - lastHelloAt >= 700) { lastHelloAt = System.currentTimeMillis(); sendHello() }
             }
@@ -459,7 +459,7 @@ class MainActivity : Activity() {
         try { val address=InetAddress.getByName(host); socket?.let { it.send(DatagramPacket(bytes,bytes.size,address,port)) } } catch (_: Exception) { }
     }
     private fun disconnect(message: String?) {
-        running=false; connected=false; rejectedByServer=false; sender?.shutdownNow(); sender=null; socket?.close(); socket=null
+        running=false; connected=false; rejectedByServer=false; stopRumble(); sender?.shutdownNow(); sender=null; socket?.close(); socket=null
         synchronized(lock) { pressed.clear(); axes.keys.forEach { axes[it]=0.0 } }
         if (message!=null && ::status.isInitialized) { status.text="● "+message; status.setTextColor(Color.rgb(255,190,90)); connectButton.text="CONECTAR" }
     }
