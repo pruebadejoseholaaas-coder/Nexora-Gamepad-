@@ -106,13 +106,13 @@ def parse_input(data):
     return buttons, axes
 
 
-def expire_inactive_clients(client_seen, client_states, paired_ips, now, timeout=PACKET_TIMEOUT_SECONDS):
+def expire_inactive_clients(client_seen, client_states, paired_clients, now, timeout=PACKET_TIMEOUT_SECONDS):
     """Remove stale phones and return their IPs so callers can refresh controls."""
     expired = [ip for ip, seen in client_seen.items() if now - seen > timeout]
     for ip in expired:
         client_seen.pop(ip, None)
         client_states.pop(ip, None)
-        paired_ips.discard(ip)
+        paired_clients.discard(ip)
     return expired
 
 
@@ -227,7 +227,7 @@ def main():
             print("Modo diagnóstico: no se enviarán controles al PC.")
 
     pairing_code = f"{secrets.randbelow(1000000):06d}"
-    paired_ips = set()
+    paired_clients = set()
     client_states = {}
     client_seen = {}
     client_addresses = {}
@@ -270,13 +270,13 @@ def main():
                 raw, address = sock.recvfrom(MAX_PACKET_BYTES)
             except socket.timeout:
                 now = time.monotonic()
-                expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
+                expired = expire_inactive_clients(client_seen, client_states, paired_clients, now)
                 if expired:
                     with clients_lock:
-                        for ip in expired:
-                            client_addresses.pop(ip, None)
-                for ip in expired:
-                    print("\nTeléfono desconectado:", ip)
+                        for client_id in expired:
+                            client_addresses.pop(client_id, None)
+                for client_id in expired:
+                    print("\nTeléfono desconectado:", client_id[0])
                 if expired:
                     buttons, axes = merge_client_states(client_states)
                     previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
@@ -299,10 +299,10 @@ def main():
             expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
             if expired:
                 with clients_lock:
-                    for ip in expired:
-                        client_addresses.pop(ip, None)
-            for ip in expired:
-                print("\nTeléfono desconectado:", ip)
+                    for client_id in expired:
+                        client_addresses.pop(client_id, None)
+            for client_id in expired:
+                print("\nTeléfono desconectado:", client_id[0])
             if expired:
                 buttons, axes = merge_client_states(client_states)
                 previous_keyboard = apply_controls(pad, keyboard_mode, buttons, axes, previous, previous_keyboard)
@@ -317,27 +317,29 @@ def main():
             if data.get("type") == "hello":
                 if data.get("code") != pairing_code:
                     continue
-                if address[0] not in paired_ips:
-                    if len(paired_ips) >= MAX_CLIENTS:
+                client_id = address
+                if client_id not in paired_clients:
+                    if len(paired_clients) >= MAX_CLIENTS:
                         send_json(sock, address, {"type": "busy", "version": 1, "message": "Máximo de teléfonos conectados alcanzado"})
                         continue
-                    paired_ips.add(address[0])
-                    client_states[address[0]] = (set(), {}, time.monotonic())
-                    print("\nTeléfono emparejado:", address[0], "|", len(paired_ips), "de", MAX_CLIENTS)
-                client_seen[address[0]] = time.monotonic()
+                    paired_clients.add(client_id)
+                    client_states[client_id] = (set(), {}, time.monotonic())
+                    print("\nTeléfono emparejado:", address[0], "|", len(paired_clients), "de", MAX_CLIENTS)
+                client_seen[client_id] = time.monotonic()
                 with clients_lock:
-                    client_addresses[address[0]] = address
+                    client_addresses[client_id] = address
                 send_json(sock, address, {"type": "hello_ack", "version": 1, "name": "Nexora Gamepad"})
                 continue
-            if address[0] not in paired_ips or data.get("code") != pairing_code:
+            client_id = address
+            if client_id not in paired_clients or data.get("code") != pairing_code:
                 continue
             parsed = parse_input(data)
             if parsed is None:
                 continue
             buttons, axes = parsed
             now = time.monotonic()
-            client_states[address[0]] = (buttons, axes, now)
-            client_seen[address[0]] = now
+            client_states[client_id] = (buttons, axes, now)
+            client_seen[client_id] = now
             with clients_lock:
                 client_addresses[address[0]] = address
             merged_buttons, merged_axes = merge_client_states(client_states)
