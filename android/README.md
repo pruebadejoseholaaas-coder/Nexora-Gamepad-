@@ -32,7 +32,8 @@ El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo e
 - Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
 - Perfiles locales: General, PPSSPP, Acción y Personal.
 - Cada perfil guarda su propia sensibilidad, zona muerta y diseño de botones frontales.
-- Puedes alternar entre diseño Xbox y Nintendo; cambian las letras y las señales enviadas al PC. La selección se guarda por perfil.
+- Puedes alternar entre diseño Xbox y Nintendo; cambian las asignaciones predeterminadas.
+- El botón **MAPEAR** abre un editor visual para asignar A, B, X o Y a cada botón frontal. La configuración se guarda por perfil.
 - Los perfiles se seleccionan manualmente; no detectan automáticamente el juego abierto en Windows.
 - Vibración local configurable.
 - Los ajustes se guardan en el teléfono.
