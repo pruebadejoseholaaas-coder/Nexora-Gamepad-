@@ -1,6 +1,7 @@
 package com.nexora.gamepad
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.graphics.Canvas
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -17,6 +18,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -59,6 +62,7 @@ class MainActivity : Activity() {
     private var faceLayout = "XBOX"
     private lateinit var faceLayoutButton: Button
     private val faceButtons = mutableMapOf<String, Button>()
+    private val faceMapping = mutableMapOf("A" to "A", "B" to "B", "X" to "X", "Y" to "Y")
     private lateinit var sensitivityControl: SeekBar
     private lateinit var deadzoneControl: SeekBar
 
@@ -71,6 +75,7 @@ class MainActivity : Activity() {
         transport = preferences.getString("transport", "WIFI") ?: "WIFI"
         activeProfile = preferences.getString("active_profile", "GENERAL") ?: "GENERAL"
         faceLayout = preferences.getString("profile_${activeProfile}_face_layout", "XBOX") ?: "XBOX"
+        loadFaceMapping()
         val profileDefaults = profileValues(activeProfile)
         stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first)
         stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second)
@@ -194,6 +199,7 @@ class MainActivity : Activity() {
         val footer = LinearLayout(this).apply { gravity = Gravity.CENTER }
         faceLayoutButton = Button(this).apply { textSize = 9f; setOnClickListener { toggleFaceLayout() } }
         footer.addView(faceLayoutButton)
+        footer.addView(Button(this).apply { text = "MAPEAR"; textSize = 9f; setOnClickListener { showButtonMappingEditor() } })
         footer.addView(Button(this).apply { text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA"; setOnClickListener { haptics = !haptics; getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putBoolean("haptics", haptics).apply(); text = if (haptics) "VIBRACIÓN: ACTIVADA" else "VIBRACIÓN: DESACTIVADA" } })
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
@@ -218,6 +224,7 @@ class MainActivity : Activity() {
         if (::sensitivityControl.isInitialized) sensitivityControl.progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0, 100)
         if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
         faceLayout = preferences.getString("profile_${profile}_face_layout", "XBOX") ?: "XBOX"
+        loadFaceMapping()
         updateFaceLayout()
         profileButtons.forEach { (key, button) ->
             val selected = key == profile
@@ -236,13 +243,24 @@ class MainActivity : Activity() {
         return button
     }
 
-    private fun faceSemantic(position: String): String {
-        if (faceLayout != "NINTENDO") return position
-        return when (position) { "A" -> "B"; "B" -> "A"; "X" -> "Y"; "Y" -> "X"; else -> position }
+    private fun defaultFaceMapping(): Map<String, String> = if (faceLayout == "NINTENDO") {
+        mapOf("A" to "B", "B" to "A", "X" to "Y", "Y" to "X")
+    } else mapOf("A" to "A", "B" to "B", "X" to "X", "Y" to "Y")
+
+    private fun loadFaceMapping() {
+        val prefs = getSharedPreferences("nexora_settings", MODE_PRIVATE)
+        val defaults = defaultFaceMapping()
+        faceMapping.clear()
+        listOf("A", "B", "X", "Y").forEach { position ->
+            faceMapping[position] = prefs.getString("profile_${activeProfile}_map_$position", defaults[position]) ?: defaults.getValue(position)
+        }
     }
 
     private fun updateFaceLayout() {
-        faceButtons.forEach { (position, button) -> button.text = faceSemantic(position) }
+        faceButtons.forEach { (position, button) ->
+            val mapped = faceMapping[position] ?: position
+            button.text = if (mapped == position) position else "$position -> $mapped"
+        }
         if (::faceLayoutButton.isInitialized) faceLayoutButton.text = if (faceLayout == "NINTENDO") "DISEÑO: NINTENDO" else "DISEÑO: XBOX"
     }
 
@@ -250,7 +268,45 @@ class MainActivity : Activity() {
         synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
         faceLayout = if (faceLayout == "XBOX") "NINTENDO" else "XBOX"
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("profile_${activeProfile}_face_layout", faceLayout).apply()
+        loadFaceMapping()
         updateFaceLayout()
+    }
+
+    private fun showButtonMappingEditor() {
+        val choices = listOf("A", "B", "X", "Y")
+        val spinners = linkedMapOf<String, Spinner>()
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 12, 24, 4) }
+        choices.forEach { position ->
+            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+            row.addView(TextView(this).apply {
+                text = "Botón $position"
+                setTextColor(Color.BLACK)
+                textSize = 15f
+            }, LinearLayout.LayoutParams(0, 48, 1f))
+            val spinner = Spinner(this)
+            spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, choices)
+            spinner.setSelection(choices.indexOf(faceMapping[position]).coerceAtLeast(0))
+            spinners[position] = spinner
+            row.addView(spinner, LinearLayout.LayoutParams(120, 48))
+            panel.addView(row)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Asignación de botones")
+            .setMessage("Elige qué señal enviará cada botón. Se guarda en el perfil actual.")
+            .setView(panel)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Guardar") { _, _ ->
+                synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
+                val editor = getSharedPreferences("nexora_settings", MODE_PRIVATE).edit()
+                spinners.forEach { (position, spinner) ->
+                    val mapped = spinner.selectedItem.toString()
+                    faceMapping[position] = mapped
+                    editor.putString("profile_${activeProfile}_map_$position", mapped)
+                }
+                editor.apply()
+                updateFaceLayout()
+            }
+            .show()
     }
 
     private fun updateTransportHelp() {
@@ -281,7 +337,7 @@ class MainActivity : Activity() {
         text = label; textSize = 13f
         setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) (faceMapping[key] ?: key) else key
                     if (outputKey == "LT") axes["leftTrigger"] = 1.0 else if (outputKey == "RT") axes["rightTrigger"] = 1.0 else pressed.add(outputKey) }; vibrateTap(); true }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
                     if (outputKey == "LT") axes["leftTrigger"] = 0.0 else if (outputKey == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(outputKey) }; true }
