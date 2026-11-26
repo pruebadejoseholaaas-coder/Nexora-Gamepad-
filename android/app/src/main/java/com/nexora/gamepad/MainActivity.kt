@@ -315,7 +315,7 @@ class MainActivity : Activity() {
             .setView(scroll)
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Guardar") { _, _ ->
-                synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
+                synchronized(lock) { pressed.removeAll(mappableButtons.toSet()) }
                 val editor = getSharedPreferences("nexora_settings", MODE_PRIVATE).edit()
                 spinners.forEach { (position, spinner) ->
                     val mapped = spinner.selectedItem.toString()
