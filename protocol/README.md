@@ -11,7 +11,7 @@ El transporte es independiente de la interfaz de red. Puede funcionar por Wi-Fi,
 ## Mensajes Windows → Android
 - `hello_ack`: confirma emparejamiento.
 - `input_ack`: confirma que el receptor sigue procesando controles.
-- `rumble`: solicita vibración del teléfono emparejado; incluye `code`, `strength` (0.0–1.0) y `durationMs` (1–500). Android acepta estos mensajes solo desde la IP del PC configurado, con el código de emparejamiento correcto, mientras está conectado. Respeta el ajuste de vibración y limita la frecuencia a un mensaje cada 100 ms.
+- `rumble`: solicita vibración del teléfono emparejado; incluye `code`, `strength` (0.0–1.0) y `durationMs` (0–500). Una intensidad de cero cancela la vibración activa. Android acepta estos mensajes solo desde la IP del PC configurado, con el código de emparejamiento correcto, mientras está conectado. Respeta el ajuste de vibración y limita la frecuencia a un mensaje cada 100 ms.
 
 ## Entrada
 El paquete `input` contiene `buttons`, `axes` y `code`. Sticks se normalizan entre -1 y 1; gatillos entre 0 y 1.

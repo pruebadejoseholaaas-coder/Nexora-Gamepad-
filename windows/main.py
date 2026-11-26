@@ -192,7 +192,7 @@ def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120
     large = clamp(large_motor, 0, 255)
     small = clamp(small_motor, 0, 255)
     strength = max(large, small) / 255.0
-    duration = int(clamp(duration_ms, 0, 500))
+    duration = int(clamp(duration_ms, 0, 500)) if strength > 0 else 0
     return {
         "type": "rumble",
         "version": 1,
@@ -240,8 +240,7 @@ def main():
     if pad is not None and hasattr(pad, "register_notification"):
         def on_game_rumble(client, target, large_motor, small_motor, led_number, user_data):
             message = build_rumble_message(pairing_code, large_motor, small_motor)
-            if message["strength"] <= 0:
-                return
+            # Forward zero-strength events so Android can cancel haptics immediately.
             with clients_lock:
                 destinations = list(client_addresses.values())
             for destination in destinations:

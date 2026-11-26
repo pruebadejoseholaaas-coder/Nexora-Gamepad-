@@ -426,6 +426,7 @@ class MainActivity : Activity() {
                                         val strength = if (rawStrength.isFinite()) rawStrength.coerceIn(0.0, 1.0) else 0.0
                                         val duration = response.optLong("durationMs", 0L).coerceIn(0L, 500L)
                                         if (strength > 0.0 && duration > 0L) vibrateRumble(duration, strength)
+                                        else if (strength <= 0.0) stopRumble()
                                     }
                                 }
                             }
@@ -473,6 +474,14 @@ class MainActivity : Activity() {
             } else {
                 vibrator.vibrate(durationMs)
             }
+        } catch (_: Exception) { }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun stopRumble() {
+        try {
+            val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= 31) getSystemService(VibratorManager::class.java).defaultVibrator else getSystemService(VIBRATOR_SERVICE) as Vibrator
+            vibrator.cancel()
         } catch (_: Exception) { }
     }
 

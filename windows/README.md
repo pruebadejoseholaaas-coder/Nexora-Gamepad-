@@ -33,7 +33,7 @@ El nombre exacto del adaptador depende del controlador y de Windows. No uses la 
 - Salida XInput únicamente si el PC ya dispone de un controlador virtual compatible con `vgamepad`.
 - Modo teclado opcional para PPSSPP, sin instalar controladores adicionales.
 - Liberación de controles al perder el flujo de paquetes.
-- Cuando el backend XInput compatible está disponible, el receptor escucha los eventos de vibración del juego y los reenvía a los teléfonos emparejados; Android aplica su vibración local si está habilitada.
+- Cuando el backend XInput compatible está disponible, el receptor escucha los eventos de vibración del juego y los reenvía a los teléfonos emparejados; Android aplica su vibración local si está habilitada y cancela la vibración al recibir intensidad cero.
 - La vibración de retorno depende del backend virtual y del controlador instalado. No funciona en modo teclado ni en modo diagnóstico.
 
 ## Seguridad

@@ -27,6 +27,9 @@ class ProtocolTests(unittest.TestCase):
         message = main.build_rumble_message("654321", 0, float("nan"), -5)
         self.assertEqual(message["strength"], 0.0)
         self.assertEqual(message["durationMs"], 0)
+        stopped = main.build_rumble_message("654321", 0, 0)
+        self.assertEqual(stopped["strength"], 0.0)
+        self.assertEqual(stopped["durationMs"], 0)
 
     def test_rumble_message_handles_non_numeric_and_non_finite_duration(self):
         self.assertEqual(main.build_rumble_message("123456", 100, 0, "invalid")["durationMs"], 0)
