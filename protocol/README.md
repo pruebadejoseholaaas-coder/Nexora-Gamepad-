@@ -20,4 +20,4 @@ El código se transmite sin cifrado; es una barrera básica para redes locales d
 
 USB y Bluetooth PAN son transportes de red compartida; el protocolo actual no implementa USB HID, Bluetooth HID ni Bluetooth RFCOMM nativo.
 
-La vibración de retorno y los perfiles configurables todavía no forman parte de este protocolo.
+Los perfiles y el diseño Xbox/Nintendo se gestionan localmente en Android; el protocolo recibe los nombres de botones ya adaptados. La vibración de retorno desde un juego de Windows todavía no está implementada.
