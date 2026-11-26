@@ -28,9 +28,11 @@ Los nombres de los menús pueden variar según la marca y la versión de Android
 ## Emparejamiento
 El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en cada teléfono que quieras conectar. Se permiten hasta cuatro teléfonos por sesión y todos comparten el mismo mando del PC; los botones se combinan y los ejes se mezclan usando el valor de mayor magnitud.
 
-## Controles
+## Controles y perfiles
 - Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
-- Ajustes de sensibilidad y zona muerta.
+- Perfiles locales: General, PPSSPP, Acción y Personal.
+- Cada perfil guarda su propia sensibilidad y zona muerta; puedes ajustar los controles y volver a cambiar de perfil sin perder sus valores.
+- Los perfiles se seleccionan manualmente; no detectan automáticamente el juego abierto en Windows.
 - Vibración local configurable.
 - Los ajustes se guardan en el teléfono.
 
