@@ -6,7 +6,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - Controles Android horizontales: A/B/X/Y, cruceta, dos sticks, L1/R1, L2/R2, L3/R3, Start y Select.
 - Vibración háptica local configurable.
 - Ajustes guardados de sensibilidad y zona muerta de los sticks, independientes por perfil.
-- Perfiles Android: General, PPSSPP, Acción y Personal, con sensibilidad, zona muerta y diseño Xbox/Nintendo guardados por separado.
+- Perfiles Android: General, PPSSPP, Acción y Personal, con sensibilidad, zona muerta, diseño Xbox/Nintendo y asignación de botones guardados por separado.
 - Conexión UDP local con emparejamiento, confirmación, reconexión y detección de pérdida de respuesta.
 - Código de emparejamiento de seis dígitos generado por Windows.
 - Receptor Windows con salida XInput opcional (requiere un controlador virtual compatible ya instalado) y liberación automática de controles.
