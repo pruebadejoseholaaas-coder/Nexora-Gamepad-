@@ -236,6 +236,8 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun faceSemantic(position: String): String = faceMapping[position] ?: position
+
     private fun faceButton(position: String): Button {
         val button = controlButton(position, position)
         button.text = faceSemantic(position)
