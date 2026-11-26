@@ -230,7 +230,7 @@ class MainActivity : Activity() {
         if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
         faceLayout = (preferences.getString("profile_${profile}_face_layout", "XBOX") ?: "XBOX")
             .takeIf { it in setOf("XBOX", "NINTENDO") } ?: "XBOX"
-        loadFaceMapping()
+        loadButtonMapping()
         updateFaceLayout()
         profileButtons.forEach { (key, button) ->
             val selected = key == profile
@@ -286,7 +286,7 @@ class MainActivity : Activity() {
         synchronized(lock) { pressed.removeAll(setOf("A", "B", "X", "Y")) }
         faceLayout = if (faceLayout == "XBOX") "NINTENDO" else "XBOX"
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("profile_${activeProfile}_face_layout", faceLayout).apply()
-        loadFaceMapping()
+        loadButtonMapping()
         updateFaceLayout()
     }
 
