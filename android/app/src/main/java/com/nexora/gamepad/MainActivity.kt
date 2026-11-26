@@ -420,13 +420,16 @@ class MainActivity : Activity() {
                             "rumble" -> {
                                 if (connected && response.optString("code") == pairingCode) {
                                     val now = System.currentTimeMillis()
-                                    if (now - lastRumbleAt >= 100L) {
+                                    val rawStrength = response.optDouble("strength", 0.0)
+                                    val strength = if (rawStrength.isFinite()) rawStrength.coerceIn(0.0, 1.0) else 0.0
+                                    val duration = response.optLong("durationMs", 0L).coerceIn(0L, 500L)
+                                    // Stop events bypass the rate limit so a game can cancel vibration immediately.
+                                    if (strength <= 0.0) {
                                         lastRumbleAt = now
-                                        val rawStrength = response.optDouble("strength", 0.0)
-                                        val strength = if (rawStrength.isFinite()) rawStrength.coerceIn(0.0, 1.0) else 0.0
-                                        val duration = response.optLong("durationMs", 0L).coerceIn(0L, 500L)
-                                        if (strength > 0.0 && duration > 0L) vibrateRumble(duration, strength)
-                                        else if (strength <= 0.0) stopRumble()
+                                        stopRumble()
+                                    } else if (now - lastRumbleAt >= 100L && duration > 0L) {
+                                        lastRumbleAt = now
+                                        vibrateRumble(duration, strength)
                                     }
                                 }
                             }
