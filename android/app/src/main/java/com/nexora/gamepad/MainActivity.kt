@@ -75,12 +75,14 @@ class MainActivity : Activity() {
         host = preferences.getString("pc_ip", host) ?: host
         haptics = preferences.getBoolean("haptics", true)
         transport = preferences.getString("transport", "WIFI") ?: "WIFI"
-        activeProfile = preferences.getString("active_profile", "GENERAL") ?: "GENERAL"
-        faceLayout = preferences.getString("profile_${activeProfile}_face_layout", "XBOX") ?: "XBOX"
+        activeProfile = (preferences.getString("active_profile", "GENERAL") ?: "GENERAL")
+            .takeIf { it in setOf("GENERAL", "PPSSPP", "ACCION", "PERSONAL") } ?: "GENERAL"
+        faceLayout = (preferences.getString("profile_${activeProfile}_face_layout", "XBOX") ?: "XBOX")
+            .takeIf { it in setOf("XBOX", "NINTENDO") } ?: "XBOX"
         loadFaceMapping()
         val profileDefaults = profileValues(activeProfile)
-        stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first)
-        stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second)
+        stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first).coerceIn(0.5f, 1.5f)
+        stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second).coerceIn(0.0f, 0.25f)
         buildInterface()
     }
 
@@ -220,12 +222,13 @@ class MainActivity : Activity() {
         activeProfile = profile
         val preferences = getSharedPreferences("nexora_settings", MODE_PRIVATE)
         val defaults = profileValues(profile)
-        stickSensitivity = preferences.getFloat("profile_${profile}_sensitivity", defaults.first)
-        stickDeadzone = preferences.getFloat("profile_${profile}_deadzone", defaults.second)
+        stickSensitivity = preferences.getFloat("profile_${profile}_sensitivity", defaults.first).coerceIn(0.5f, 1.5f)
+        stickDeadzone = preferences.getFloat("profile_${profile}_deadzone", defaults.second).coerceIn(0.0f, 0.25f)
         preferences.edit().putString("active_profile", profile).apply()
         if (::sensitivityControl.isInitialized) sensitivityControl.progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0, 100)
         if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
-        faceLayout = preferences.getString("profile_${profile}_face_layout", "XBOX") ?: "XBOX"
+        faceLayout = (preferences.getString("profile_${profile}_face_layout", "XBOX") ?: "XBOX")
+            .takeIf { it in setOf("XBOX", "NINTENDO") } ?: "XBOX"
         loadFaceMapping()
         updateFaceLayout()
         profileButtons.forEach { (key, button) ->
@@ -256,7 +259,8 @@ class MainActivity : Activity() {
         val defaults = defaultFaceMapping()
         faceMapping.clear()
         listOf("A", "B", "X", "Y").forEach { position ->
-            faceMapping[position] = prefs.getString("profile_${activeProfile}_map_$position", defaults[position]) ?: defaults.getValue(position)
+            val saved = prefs.getString("profile_${activeProfile}_map_$position", defaults[position])
+            faceMapping[position] = saved?.takeIf { it in setOf("A", "B", "X", "Y") } ?: defaults.getValue(position)
         }
     }
 
