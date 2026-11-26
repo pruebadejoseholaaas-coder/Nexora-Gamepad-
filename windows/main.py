@@ -49,9 +49,10 @@ KEYEVENTF_KEYUP = 0x0002
 
 class PairingAttemptLimiter:
     """Limit incorrect pairing-code attempts per source IP without penalizing valid phones."""
-    def __init__(self, max_attempts=5, window_seconds=30.0):
+    def __init__(self, max_attempts=5, window_seconds=30.0, max_tracked_ips=1024):
         self.max_attempts = max_attempts
         self.window_seconds = window_seconds
+        self.max_tracked_ips = max(1, int(max_tracked_ips))
         self.failures = {}
         self.lock = threading.Lock()
 
@@ -66,6 +67,12 @@ class PairingAttemptLimiter:
         now = time.monotonic() if now is None else now
         with self.lock:
             self._prune(now)
+            if ip not in self.failures and len(self.failures) >= self.max_tracked_ips:
+                oldest_ip = min(
+                    self.failures,
+                    key=lambda address: self.failures[address][-1],
+                )
+                self.failures.pop(oldest_ip, None)
             attempts = self.failures.setdefault(ip, [])
             attempts.append(now)
             return len(attempts) < self.max_attempts
@@ -137,10 +144,24 @@ def parse_input(data):
     axes = data.get("axes", {})
     if not isinstance(buttons_data, list) or not isinstance(axes, dict):
         return None
+    # Reject unreasonable structures before doing any further processing.
+    if len(buttons_data) > 32 or len(axes) > 16:
+        return None
     buttons = {name for name in buttons_data if isinstance(name, str) and name in BUTTONS}
     allowed_axes = {"leftX", "leftY", "rightX", "rightY", "leftTrigger", "rightTrigger"}
-    axes = {name: value for name, value in axes.items() if name in allowed_axes}
-    return buttons, axes
+    normalized_axes = {}
+    for name, value in axes.items():
+        if name not in allowed_axes:
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            number = 0.0
+        if not math.isfinite(number):
+            number = 0.0
+        low = 0.0 if "Trigger" in name else -1.0
+        normalized_axes[name] = max(low, min(1.0, number))
+    return buttons, normalized_axes
 
 
 def expire_inactive_clients(client_seen, client_states, paired_clients, now, timeout=PACKET_TIMEOUT_SECONDS):
@@ -312,6 +333,9 @@ def main():
         while True:
             try:
                 raw, address = sock.recvfrom(MAX_PACKET_BYTES)
+                # recvfrom truncates oversized UDP datagrams; never parse a truncated JSON packet.
+                if len(raw) >= MAX_PACKET_BYTES:
+                    continue
             except socket.timeout:
                 now = time.monotonic()
                 expired = expire_inactive_clients(client_seen, client_states, paired_clients, now)
