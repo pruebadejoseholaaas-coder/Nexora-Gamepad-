@@ -31,7 +31,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - Pruebas reales en hardware.
 
 ## Seguridad y privacidad
-No necesita cuenta, anuncios ni nube. El receptor genera un código temporal de seis dígitos. Hasta cuatro direcciones IP pueden emparejarse con el mismo código durante la sesión; se eliminan automáticamente cuando dejan de enviar datos y superan el tiempo de espera. El código se envía por UDP sin cifrado: es una protección básica para redes domésticas, no seguridad criptográfica. Usa una red Wi-Fi de confianza, no compartas el código y no expongas el puerto UDP 26760 a Internet. Autoriza el firewall solo en redes privadas.
+No necesita cuenta, anuncios ni nube. El receptor genera un código temporal de seis dígitos. Hasta cuatro teléfonos pueden emparejarse con el mismo código durante la sesión; cada conexión se identifica por IP y puerto, y se elimina de forma independiente cuando deja de enviar datos y supera el tiempo de espera. El código se envía por UDP sin cifrado: es una protección básica para redes domésticas, no seguridad criptográfica. Usa una red Wi-Fi de confianza, no compartas el código y no expongas el puerto UDP 26760 a Internet. Autoriza el firewall solo en redes privadas.
 
 ## Estado
 Versión de desarrollo. La compilación automatizada no sustituye pruebas reales en teléfono y PC.

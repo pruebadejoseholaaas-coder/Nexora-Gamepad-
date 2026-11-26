@@ -144,6 +144,14 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(expired, [])
         self.assertEqual(len(paired), 4)
 
+        seen[("192.168.1.50", 41002)] = 8.0
+        expired = main.expire_inactive_clients(seen, clients, paired, now=10.5)
+        self.assertEqual(expired, [("192.168.1.50", 41002)])
+        self.assertEqual(len(paired), 3)
+        self.assertIn(("192.168.1.50", 41001), paired)
+        self.assertIn(("192.168.1.50", 41003), paired)
+        self.assertIn(("192.168.1.50", 41004), paired)
+
     def test_expire_inactive_clients_returns_empty_when_all_active(self):
         seen = {"phone": 20.0}
         states = {"phone": (set(), {}, 20.0)}
