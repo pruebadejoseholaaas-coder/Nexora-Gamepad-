@@ -54,6 +54,9 @@ class MainActivity : Activity() {
     private var transport = "WIFI"
     private lateinit var transportHelp: TextView
     private val transportButtons = mutableMapOf<String, Button>()
+    private var activeProfile = "GENERAL"
+    private lateinit var sensitivityControl: SeekBar
+    private lateinit var deadzoneControl: SeekBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +67,10 @@ class MainActivity : Activity() {
         stickSensitivity = preferences.getFloat("stick_sensitivity", 1.0f)
         stickDeadzone = preferences.getFloat("stick_deadzone", 0.08f)
         transport = preferences.getString("transport", "WIFI") ?: "WIFI"
+        activeProfile = preferences.getString("active_profile", "GENERAL") ?: "GENERAL"
+        val profileDefaults = profileValues(activeProfile)
+        stickSensitivity = preferences.getFloat("profile_${activeProfile}_sensitivity", profileDefaults.first)
+        stickDeadzone = preferences.getFloat("profile_${activeProfile}_deadzone", profileDefaults.second)
         buildInterface()
     }
 
@@ -109,37 +116,47 @@ class MainActivity : Activity() {
         root.addView(transportHelp, LinearLayout.LayoutParams(-1, 28))
         updateTransportHelp()
 
+        val profileRow = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        listOf("GENERAL" to "GENERAL", "PPSSPP" to "PPSSPP", "ACCION" to "ACCIÓN", "PERSONAL" to "PERSONAL").forEach { (key, label) ->
+            profileRow.addView(Button(this).apply {
+                text = label
+                textSize = 9f
+                setOnClickListener { applyProfile(key) }
+            }, LinearLayout.LayoutParams(0, 32, 1f))
+        }
+        root.addView(profileRow)
+
         val tuning = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val sensitivityLabel = TextView(this).apply { text = "Sensibilidad"; textSize = 11f; setTextColor(Color.WHITE) }
         tuning.addView(sensitivityLabel)
-        val sensitivityBar = SeekBar(this).apply {
+        sensitivityControl = SeekBar(this).apply {
             max = 100
             progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0,100)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     stickSensitivity = 0.5f + progress / 100f
-                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("stick_sensitivity", stickSensitivity).apply()
+                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("profile_${activeProfile}_sensitivity", stickSensitivity).apply()
                 }
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
         }
-        tuning.addView(sensitivityBar, LinearLayout.LayoutParams(0, 38, 1f))
+        tuning.addView(sensitivityControl, LinearLayout.LayoutParams(0, 38, 1f))
         val deadzoneLabel = TextView(this).apply { text = "Zona muerta"; textSize = 11f; setTextColor(Color.WHITE) }
         tuning.addView(deadzoneLabel)
-        val deadzoneBar = SeekBar(this).apply {
+        deadzoneControl = SeekBar(this).apply {
             max = 25
             progress = (stickDeadzone * 100f).toInt().coerceIn(0,25)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     stickDeadzone = progress / 100f
-                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("stick_deadzone", stickDeadzone).apply()
+                    getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putFloat("profile_${activeProfile}_deadzone", stickDeadzone).apply()
                 }
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
         }
-        tuning.addView(deadzoneBar, LinearLayout.LayoutParams(0, 38, 1f))
+        tuning.addView(deadzoneControl, LinearLayout.LayoutParams(0, 38, 1f))
         root.addView(tuning)
 
         val shoulders = LinearLayout(this).apply { gravity = Gravity.CENTER }
@@ -174,6 +191,28 @@ class MainActivity : Activity() {
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
         setContentView(root)
+    }
+
+    private fun profileValues(profile: String): Pair<Float, Float> = when (profile) {
+        "PPSSPP" -> Pair(1.15f, 0.05f)
+        "ACCION" -> Pair(0.95f, 0.12f)
+        "PERSONAL" -> Pair(1.0f, 0.08f)
+        else -> Pair(1.0f, 0.08f)
+    }
+
+    private fun applyProfile(profile: String) {
+        activeProfile = profile
+        val preferences = getSharedPreferences("nexora_settings", MODE_PRIVATE)
+        val defaults = profileValues(profile)
+        stickSensitivity = preferences.getFloat("profile_${profile}_sensitivity", defaults.first)
+        stickDeadzone = preferences.getFloat("profile_${profile}_deadzone", defaults.second)
+        preferences.edit().putString("active_profile", profile).apply()
+        if (::sensitivityControl.isInitialized) sensitivityControl.progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0, 100)
+        if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
+        if (::status.isInitialized) {
+            status.text = "● PERFIL " + profile
+            status.setTextColor(Color.rgb(150, 190, 220))
+        }
     }
 
     private fun updateTransportHelp() {
