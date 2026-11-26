@@ -15,6 +15,19 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(main.clamp(float("nan"), -1, 1), 0)
         self.assertEqual(main.clamp(float("inf"), -1, 1), 0)
 
+    def test_rumble_message_normalizes_motors_and_bounds_duration(self):
+        message = main.build_rumble_message("123456", 255, 128, 900)
+        self.assertEqual(message["type"], "rumble")
+        self.assertEqual(message["version"], 1)
+        self.assertEqual(message["code"], "123456")
+        self.assertEqual(message["strength"], 1.0)
+        self.assertEqual(message["durationMs"], 500)
+
+    def test_rumble_message_handles_zero_and_invalid_motor_values(self):
+        message = main.build_rumble_message("654321", 0, float("nan"), -5)
+        self.assertEqual(message["strength"], 0.0)
+        self.assertEqual(message["durationMs"], 0)
+
     def test_accepts_valid_input(self):
         parsed = main.parse_input({
             "type": "input",
