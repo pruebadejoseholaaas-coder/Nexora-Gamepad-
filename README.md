@@ -6,7 +6,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - Controles Android horizontales: A/B/X/Y, cruceta, dos sticks, L1/R1, L2/R2, L3/R3, Start y Select.
 - Vibración háptica local configurable.
 - Ajustes guardados de sensibilidad y zona muerta de los sticks, independientes por perfil.
-- Perfiles Android: General, PPSSPP, Acción y Personal.
+- Perfiles Android: General, PPSSPP, Acción y Personal, con sensibilidad, zona muerta y diseño Xbox/Nintendo guardados por separado.
 - Conexión UDP local con emparejamiento, confirmación, reconexión y detección de pérdida de respuesta.
 - Código de emparejamiento de seis dígitos generado por Windows.
 - Receptor Windows con salida XInput opcional (requiere un controlador virtual compatible ya instalado) y liberación automática de controles.
@@ -22,7 +22,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - `.github/workflows/`: compilaciones y pruebas.
 
 ## Pendiente
-- Asignación visual y reasignación personalizada de botones para otros juegos.
+- Editor visual para reasignar cada botón a una tecla o acción configurable por juego.
 - Vibración de retorno desde el juego de Windows al teléfono.
 - Un backend de mando virtual para Windows que no dependa de ViGEmBus, cuyo proyecto original está archivado.
 - Pruebas adicionales de interoperabilidad entre Wi-Fi, USB tethering y Bluetooth PAN.
