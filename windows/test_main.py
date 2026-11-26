@@ -129,6 +129,21 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(set(states), {"active"})
         self.assertEqual(paired, {"active"})
 
+    def test_four_clients_on_same_ip_use_distinct_udp_ports(self):
+        clients = {
+            ("192.168.1.50", 41001): ({"A"}, {}, 1.0),
+            ("192.168.1.50", 41002): ({"B"}, {}, 1.0),
+            ("192.168.1.50", 41003): ({"X"}, {}, 1.0),
+            ("192.168.1.50", 41004): ({"Y"}, {}, 1.0),
+        }
+        buttons, _ = main.merge_client_states(clients)
+        self.assertEqual(buttons, {"A", "B", "X", "Y"})
+        seen = {client: 10.0 for client in clients}
+        paired = set(clients)
+        expired = main.expire_inactive_clients(seen, clients, paired, now=10.5)
+        self.assertEqual(expired, [])
+        self.assertEqual(len(paired), 4)
+
     def test_expire_inactive_clients_returns_empty_when_all_active(self):
         seen = {"phone": 20.0}
         states = {"phone": (set(), {}, 20.0)}

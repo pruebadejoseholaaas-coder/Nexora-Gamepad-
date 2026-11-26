@@ -296,7 +296,7 @@ def main():
             if not isinstance(data, dict) or data.get("version") != 1:
                 continue
             now = time.monotonic()
-            expired = expire_inactive_clients(client_seen, client_states, paired_ips, now)
+            expired = expire_inactive_clients(client_seen, client_states, paired_clients, now)
             if expired:
                 with clients_lock:
                     for client_id in expired:
@@ -348,7 +348,7 @@ def main():
             send_json(sock, address, {"type": "input_ack", "version": 1})
             now = time.monotonic()
             if now-last_notice > 2:
-                print("Controles recibidos | teléfonos conectados:", len(paired_ips), "|", "XInput activo" if pad is not None else ("teclado PPSSPP activo" if keyboard_mode else "modo diagnóstico"))
+                print("Controles recibidos | teléfonos conectados:", len(paired_clients), "|", "XInput activo" if pad is not None else ("teclado PPSSPP activo" if keyboard_mode else "modo diagnóstico"))
                 last_notice = now
     except KeyboardInterrupt:
         print("\nCerrando Nexora Gamepad...")
