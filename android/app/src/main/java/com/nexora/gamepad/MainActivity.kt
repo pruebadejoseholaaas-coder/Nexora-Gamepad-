@@ -36,6 +36,7 @@ import kotlin.math.min
 class MainActivity : Activity() {
     private val port = 26760
     @Volatile private var host = "192.168.1.100"
+    @Volatile private var hostAddress: InetAddress? = null
     @Volatile private var connected = false
     @Volatile private var lastResponseAt = 0L
     @Volatile private var lastHelloAt = 0L
@@ -384,12 +385,27 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun parseIpv4(value: String): InetAddress? {
+        val parts = value.split(".")
+        if (parts.size != 4) return null
+        val octets = parts.map { part ->
+            if (part.isEmpty() || part.any { it !in '0'..'9' }) return null
+            part.toIntOrNull()?.takeIf { it in 0..255 } ?: return null
+        }
+        return try {
+            InetAddress.getByAddress(octets.map { it.toByte() }.toByteArray())
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun connectToPc() {
         val candidate=ipField.text.toString().trim()
-        try { InetAddress.getByName(candidate) } catch (_: Exception) { status.text="● IP NO VÁLIDA"; return }
+        val resolvedAddress = parseIpv4(candidate)
+        if (resolvedAddress == null) { status.text="● INTRODUCE UNA IPv4 VÁLIDA"; return }
         val enteredCode = codeField.text.toString().trim()
         if (!enteredCode.matches(Regex("\\d{6}"))) { status.text="● INTRODUCE EL CÓDIGO DE 6 DÍGITOS"; return }
-        disconnect(null); host=candidate; pairingCode=enteredCode
+        disconnect(null); host=candidate; hostAddress=resolvedAddress; pairingCode=enteredCode
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("pc_ip", host).apply()
         running=true
         rejectedByServer=false
@@ -402,7 +418,7 @@ class MainActivity : Activity() {
                 try {
                     val packet=DatagramPacket(buffer,buffer.size); socket?.receive(packet)
                     val response=JSONObject(String(packet.data,0,packet.length,Charsets.UTF_8))
-                    if (packet.address.hostAddress == InetAddress.getByName(host).hostAddress && packet.port == port) {
+                    if (packet.address == hostAddress && packet.port == port) {
                         when (response.optString("type")) {
                             "busy" -> {
                                 rejectedByServer = true
@@ -470,7 +486,7 @@ class MainActivity : Activity() {
     }
     private fun sendJson(json: JSONObject) {
         val bytes=json.toString().toByteArray(Charsets.UTF_8)
-        try { val address=InetAddress.getByName(host); socket?.let { it.send(DatagramPacket(bytes,bytes.size,address,port)) } } catch (_: Exception) { }
+        try { hostAddress?.let { address -> socket?.let { it.send(DatagramPacket(bytes,bytes.size,address,port)) } } } catch (_: Exception) { }
     }
     private fun disconnect(message: String?) {
         running=false; connected=false; rejectedByServer=false; stopRumble(); sender?.shutdownNow(); sender=null; socket?.close(); socket=null
