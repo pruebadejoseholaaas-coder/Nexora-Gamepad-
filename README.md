@@ -19,7 +19,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 
 ## Componentes
 - `android/`: aplicación Android.
-- `windows/`: receptor Windows.
+- `windows/`: receptor Windows ([guía de instalación y uso](windows/README.md)).
 - `protocol/`: protocolo local.
 - `.github/workflows/`: compilaciones y pruebas.
 

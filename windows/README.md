@@ -1,40 +1,29 @@
-# Nexora Gamepad para Windows
+# Receptor de Nexora Gamepad para Windows
 
-Receptor UDP local y puente de entrada a un mando virtual XInput o teclado.
+## Qué hace
+El receptor recibe por UDP los controles enviados por los teléfonos Android, combina hasta cuatro teléfonos y los presenta como un único mando compartido. Escucha en el puerto **26760**.
 
-## Requisitos
-- Windows 10/11 de 64 bits.
-- Python 3.11 o posterior si se ejecuta desde código.
-- PC y teléfono conectados mediante Wi-Fi, anclaje USB o anclaje Bluetooth PAN.
-- Para que los juegos detecten un mando XInput se necesita un controlador virtual compatible con `vgamepad`. Instalar la biblioteca de Python no instala ese controlador.
-- La vibración de retorno del juego también requiere que ese backend admita notificaciones de vibración.
-- Nexora no descarga ni instala controladores de sistema. ViGEmBus está retirado y archivado; no se incluye ni se instala automáticamente.
-- Si no hay un controlador virtual disponible, puedes usar el modo teclado opcional para PPSSPP.
+## Primera ejecución
+1. Descarga y extrae `NexoraGamepad.exe` desde los artefactos de GitHub Actions o desde una versión publicada.
+2. Ejecuta el archivo en Windows.
+3. Si Windows Firewall pregunta, permite el acceso únicamente en redes privadas y de confianza.
+4. El receptor mostrará un código temporal de seis dígitos y las direcciones IPv4 disponibles.
+5. En Android, introduce la IPv4 del adaptador de red que comparte conexión con el teléfono y el código mostrado en Windows.
+6. Mantén abierto el receptor mientras utilizas el mando.
 
-## Uso
-1. Ejecuta `NexoraGamepad.exe` o `python main.py`.
-2. El receptor muestra un código temporal de seis dígitos. Puedes introducir el mismo código en hasta cuatro teléfonos.
-3. Si Windows Firewall pregunta, permite la comunicación solo en redes privadas.
-4. En el teléfono, selecciona Wi-Fi, USB o Bluetooth.
-5. Introduce en Android la IPv4 del adaptador de Windows correspondiente a esa conexión y el código de seis dígitos.
-6. Pulsa **CONECTAR**.
+## Modos de control
+- **XInput:** se activa si `vgamepad` puede crear el mando virtual y hay un controlador virtual compatible instalado. No se instala ningún controlador automáticamente.
+- **Teclado:** si XInput no está disponible, puedes activar el modo teclado cuando el receptor lo pregunte. Consulta [PPSSPP.md](PPSSPP.md) para ver las teclas y configurar PPSSPP.
+- **Diagnóstico:** si no activas teclado y XInput no está disponible, el receptor recibe paquetes pero no envía controles al juego.
 
-### Cómo encontrar la IP correcta
-Abre CMD o PowerShell y ejecuta `ipconfig`.
-- Wi-Fi: usa la IPv4 del adaptador Wi-Fi que comparte la red con el teléfono.
-- USB: conecta el cable, activa Anclaje USB en Android y usa la IPv4 del adaptador Ethernet/RNDIS.
-- Bluetooth: empareja los dispositivos, activa Anclaje Bluetooth en Android y conecta Windows a la red PAN; usa la IPv4 del adaptador Bluetooth.
+El backend actual usa `vgamepad`. Su funcionamiento depende de un controlador virtual compatible; ViGEmBus está archivado y no se distribuye con Nexora. El modo teclado es la alternativa que no necesita ese controlador.
 
-El nombre exacto del adaptador depende del controlador y de Windows. No uses la IP pública ni la puerta de enlace; introduce la IPv4 asignada al propio PC en esa interfaz.
+## Conexión
+- **Wi-Fi:** PC y teléfonos en la misma red local.
+- **USB:** activa Anclaje USB en Android y usa en Windows la IPv4 del adaptador Ethernet/RNDIS.
+- **Bluetooth:** activa Anclaje Bluetooth/PAN y usa la IPv4 del adaptador de red Bluetooth.
 
-## Funciones
-- UDP en el puerto 26760, escuchando en las interfaces locales.
-- Código temporal de emparejamiento compartido por hasta cuatro teléfonos.
-- Salida XInput únicamente si el PC ya dispone de un controlador virtual compatible con `vgamepad`.
-- Modo teclado opcional para PPSSPP, sin instalar controladores adicionales.
-- Liberación de controles al perder el flujo de paquetes.
-- Cuando el backend XInput compatible está disponible, el receptor escucha los eventos de vibración del juego y los reenvía a los teléfonos emparejados; Android aplica su vibración local si está habilitada y cancela la vibración al recibir intensidad cero.
-- La vibración de retorno depende del backend virtual y del controlador instalado. No funciona en modo teclado ni en modo diagnóstico.
+USB y Bluetooth PAN transportan tráfico de red; Nexora todavía no implementa USB HID ni Bluetooth HID/RFCOMM nativo.
 
 ## Seguridad
-El código viaja sin cifrado y no sustituye autenticación criptográfica. Usa redes de confianza, permite el acceso solo en redes privadas y no abras ni reenvíes el puerto 26760 hacia Internet.
+El código temporal dificulta conexiones casuales y los intentos incorrectos se limitan por IP. El protocolo UDP no cifra el tráfico. No compartas el código, no abras el puerto 26760 hacia Internet y evita redes públicas. Cierra el receptor al terminar.
