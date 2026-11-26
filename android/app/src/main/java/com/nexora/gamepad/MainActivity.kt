@@ -230,7 +230,8 @@ class MainActivity : Activity() {
     }
 
     private fun faceButton(position: String): Button {
-        val button = controlButton(faceSemantic(position), faceSemantic(position))
+        val button = controlButton(position, position)
+        button.text = faceSemantic(position)
         faceButtons[position] = button
         return button
     }
@@ -277,11 +278,12 @@ class MainActivity : Activity() {
 
     private fun controlButton(label: String, key: String) = Button(this).apply {
         text = label; textSize = 13f
-        val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
         setOnTouchListener { _, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) { if (outputKey == "LT") axes["leftTrigger"] = 1.0 else if (outputKey == "RT") axes["rightTrigger"] = 1.0 else pressed.add(outputKey) }; vibrateTap(); true }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { if (outputKey == "LT") axes["leftTrigger"] = 0.0 else if (outputKey == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(outputKey) }; true }
+                MotionEvent.ACTION_DOWN -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
+                    if (outputKey == "LT") axes["leftTrigger"] = 1.0 else if (outputKey == "RT") axes["rightTrigger"] = 1.0 else pressed.add(outputKey) }; vibrateTap(); true }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) { val outputKey = if (key in setOf("A", "B", "X", "Y")) faceSemantic(key) else key
+                    if (outputKey == "LT") axes["leftTrigger"] = 0.0 else if (outputKey == "RT") axes["rightTrigger"] = 0.0 else pressed.remove(outputKey) }; true }
                 else -> true
             }
         }
