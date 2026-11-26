@@ -23,7 +23,7 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 
 ## Pendiente
 - Editor visual para reasignar cada botón a una tecla o acción configurable por juego.
-- Vibración de retorno desde el juego de Windows al teléfono.
+- Conexión del evento de vibración del juego en Windows con el mensaje `rumble` ya admitido por Android.
 - Un backend de mando virtual para Windows que no dependa de ViGEmBus, cuyo proyecto original está archivado.
 - Pruebas adicionales de interoperabilidad entre Wi-Fi, USB tethering y Bluetooth PAN.
 - Pruebas reales en hardware.
