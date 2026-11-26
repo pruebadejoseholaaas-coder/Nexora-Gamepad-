@@ -51,6 +51,7 @@ jobs:
       - name: Install dependencies
         shell: pwsh
         run: |
+          $env:VGAMEPAD_SKIP_VIGEMBUS_INSTALL = "true"
           python -m pip install --upgrade pip
           pip install -r windows/requirements.txt
           pip install pyinstaller
