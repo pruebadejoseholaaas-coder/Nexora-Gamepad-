@@ -54,6 +54,7 @@ class MainActivity : Activity() {
     private var transport = "WIFI"
     private lateinit var transportHelp: TextView
     private val transportButtons = mutableMapOf<String, Button>()
+    private val profileButtons = mutableMapOf<String, Button>()
     private var activeProfile = "GENERAL"
     private lateinit var sensitivityControl: SeekBar
     private lateinit var deadzoneControl: SeekBar
@@ -64,8 +65,6 @@ class MainActivity : Activity() {
         val preferences = getSharedPreferences("nexora_settings", MODE_PRIVATE)
         host = preferences.getString("pc_ip", host) ?: host
         haptics = preferences.getBoolean("haptics", true)
-        stickSensitivity = preferences.getFloat("stick_sensitivity", 1.0f)
-        stickDeadzone = preferences.getFloat("stick_deadzone", 0.08f)
         transport = preferences.getString("transport", "WIFI") ?: "WIFI"
         activeProfile = preferences.getString("active_profile", "GENERAL") ?: "GENERAL"
         val profileDefaults = profileValues(activeProfile)
@@ -118,11 +117,13 @@ class MainActivity : Activity() {
 
         val profileRow = LinearLayout(this).apply { gravity = Gravity.CENTER }
         listOf("GENERAL" to "GENERAL", "PPSSPP" to "PPSSPP", "ACCION" to "ACCIÓN", "PERSONAL" to "PERSONAL").forEach { (key, label) ->
-            profileRow.addView(Button(this).apply {
+            val profileButton = Button(this).apply {
                 text = label
                 textSize = 9f
                 setOnClickListener { applyProfile(key) }
-            }, LinearLayout.LayoutParams(0, 32, 1f))
+            }
+            profileButtons[key] = profileButton
+            profileRow.addView(profileButton, LinearLayout.LayoutParams(0, 32, 1f))
         }
         root.addView(profileRow)
 
@@ -191,6 +192,7 @@ class MainActivity : Activity() {
         footer.addView(Button(this).apply { text = "DESCONECTAR"; setOnClickListener { disconnect("Desconectado") } })
         root.addView(footer)
         setContentView(root)
+        applyProfile(activeProfile)
     }
 
     private fun profileValues(profile: String): Pair<Float, Float> = when (profile) {
@@ -209,9 +211,13 @@ class MainActivity : Activity() {
         preferences.edit().putString("active_profile", profile).apply()
         if (::sensitivityControl.isInitialized) sensitivityControl.progress = ((stickSensitivity - 0.5f) * 100f).toInt().coerceIn(0, 100)
         if (::deadzoneControl.isInitialized) deadzoneControl.progress = (stickDeadzone * 100f).toInt().coerceIn(0, 25)
-        if (::status.isInitialized) {
-            status.text = "● PERFIL " + profile
-            status.setTextColor(Color.rgb(150, 190, 220))
+        profileButtons.forEach { (key, button) ->
+            val selected = key == profile
+            button.backgroundTintList = ColorStateList.valueOf(
+                if (selected) Color.rgb(30, 115, 170) else Color.rgb(45, 53, 68)
+            )
+            button.setTextColor(Color.WHITE)
+            button.alpha = if (selected) 1.0f else 0.78f
         }
     }
 
