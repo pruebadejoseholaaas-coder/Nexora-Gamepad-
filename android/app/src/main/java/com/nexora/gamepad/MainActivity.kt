@@ -65,6 +65,7 @@ class MainActivity : Activity() {
     private var faceLayout = "XBOX"
     private lateinit var faceLayoutButton: Button
     private val faceButtons = mutableMapOf<String, Button>()
+    private val controlButtons = mutableMapOf<String, Pair<String, Button>>()
     private val buttonMapping = mutableMapOf<String, String>()
     private lateinit var sensitivityControl: SeekBar
     private lateinit var deadzoneControl: SeekBar
@@ -277,9 +278,10 @@ class MainActivity : Activity() {
     }
 
     private fun updateFaceLayout() {
-        faceButtons.forEach { (position, button) ->
-            val mapped = buttonMapping[position] ?: position
-            button.text = if (mapped == position) position else "$position -> $mapped"
+        controlButtons.forEach { (key, entry) ->
+            val (label, button) = entry
+            val mapped = buttonMapping[key] ?: key
+            button.text = if (mapped == key) label else "$label -> $mapped"
         }
         if (::faceLayoutButton.isInitialized) faceLayoutButton.text = if (faceLayout == "NINTENDO") "DISEÑO: NINTENDO" else "DISEÑO: XBOX"
     }
@@ -358,6 +360,7 @@ class MainActivity : Activity() {
 
     private fun controlButton(label: String, key: String) = Button(this).apply {
         text = label; textSize = 13f
+        if (key in mappableButtons) controlButtons[key] = Pair(label, this)
         setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> { synchronized(lock) {
