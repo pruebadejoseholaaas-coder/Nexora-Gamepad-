@@ -47,6 +47,43 @@ KEYBOARD_TRIGGERS = {"leftTrigger": 0x31, "rightTrigger": 0x32}
 KEYEVENTF_KEYUP = 0x0002
 
 
+class PairingAttemptLimiter:
+    """Limit incorrect pairing-code attempts per source IP without penalizing valid phones."""
+    def __init__(self, max_attempts=5, window_seconds=30.0):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self.failures = {}
+        self.lock = threading.Lock()
+
+    def allowed(self, ip, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            self._prune(now)
+            attempts = self.failures.get(ip, [])
+            return len(attempts) < self.max_attempts
+
+    def record_failure(self, ip, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            self._prune(now)
+            attempts = self.failures.setdefault(ip, [])
+            attempts.append(now)
+            return len(attempts) < self.max_attempts
+
+    def record_success(self, ip):
+        with self.lock:
+            self.failures.pop(ip, None)
+
+    def _prune(self, now):
+        cutoff = now - self.window_seconds
+        for ip in list(self.failures):
+            recent = [stamp for stamp in self.failures[ip] if stamp > cutoff]
+            if recent:
+                self.failures[ip] = recent
+            else:
+                self.failures.pop(ip, None)
+
+
 def keyboard_keys(buttons, axes):
     """Return the currently-held virtual keys for the optional PPSSPP mode."""
     keys = {KEYBOARD_BUTTONS[name] for name in buttons if name in KEYBOARD_BUTTONS}
@@ -237,6 +274,7 @@ def main():
 
     pairing_code = f"{secrets.randbelow(1000000):06d}"
     paired_clients = set()
+    pairing_limiter = PairingAttemptLimiter()
     client_states = {}
     client_seen = {}
     client_addresses = {}
@@ -321,8 +359,13 @@ def main():
                     previous.clear()
                     print("\nTodos los teléfonos desconectados: controles liberados.")
             if data.get("type") == "hello":
-                if data.get("code") != pairing_code:
+                source_ip = address[0]
+                if not pairing_limiter.allowed(source_ip, now):
                     continue
+                if data.get("code") != pairing_code:
+                    pairing_limiter.record_failure(source_ip, now)
+                    continue
+                pairing_limiter.record_success(source_ip)
                 client_id = address
                 if client_id not in paired_clients:
                     if len(paired_clients) >= MAX_CLIENTS:

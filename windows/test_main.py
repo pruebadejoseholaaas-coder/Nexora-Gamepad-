@@ -9,6 +9,25 @@ import main
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_pairing_limiter_blocks_repeated_wrong_codes_per_ip(self):
+        limiter = main.PairingAttemptLimiter(max_attempts=3, window_seconds=30)
+        self.assertTrue(limiter.allowed("192.168.1.20", now=100))
+        self.assertTrue(limiter.record_failure("192.168.1.20", now=100))
+        self.assertTrue(limiter.record_failure("192.168.1.20", now=101))
+        self.assertFalse(limiter.record_failure("192.168.1.20", now=102))
+        self.assertFalse(limiter.allowed("192.168.1.20", now=103))
+        self.assertTrue(limiter.allowed("192.168.1.21", now=103))
+
+    def test_pairing_limiter_expires_old_attempts_and_resets_after_success(self):
+        limiter = main.PairingAttemptLimiter(max_attempts=2, window_seconds=10)
+        limiter.record_failure("192.168.1.20", now=100)
+        limiter.record_failure("192.168.1.20", now=101)
+        self.assertFalse(limiter.allowed("192.168.1.20", now=102))
+        self.assertTrue(limiter.allowed("192.168.1.20", now=112))
+        limiter.record_failure("192.168.1.20", now=113)
+        limiter.record_success("192.168.1.20")
+        self.assertTrue(limiter.allowed("192.168.1.20", now=114))
+
     def test_clamp_limits_values(self):
         self.assertEqual(main.clamp(2, -1, 1), 1)
         self.assertEqual(main.clamp(-2, -1, 1), -1)
