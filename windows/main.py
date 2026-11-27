@@ -270,9 +270,7 @@ def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120
 
 
 def main():
-    requested_mode = None
-    if len(sys.argv) >= 3 and sys.argv[1] == "--mode" and sys.argv[2] in ("auto", "keyboard", "diagnostic"):
-        requested_mode = sys.argv[2]
+    requested_mode = requested_mode_from_args(sys.argv)
     shutdown_event = threading.Event()
     if requested_mode is not None:
         def watch_shutdown_stdin():
