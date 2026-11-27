@@ -6,7 +6,7 @@ App de mando en horizontal. Requiere Android 8.0 o posterior.
 
 ## Conexión por Wi-Fi, USB o Bluetooth
 
-En la pantalla principal puedes elegir el tipo de conexión. El selector guarda tu preferencia y muestra los pasos; los paquetes de control usan el mismo protocolo UDP y Android los envía por la interfaz de red que corresponda a la IP del PC. Por eso, en los tres casos debes introducir la IPv4 correcta del adaptador del PC. USB y Bluetooth usan anclaje de red (RNDIS/PAN): Nexora aún no funciona como dispositivo USB HID ni Bluetooth HID/RFCOMM directo.
+En la pantalla principal puedes elegir el tipo de conexión. El selector guarda tu preferencia y muestra los pasos; los paquetes de control usan el mismo protocolo UDP y Android los envía por la interfaz de red que corresponda a la IP del PC. La app enlaza el socket UDP a la interfaz correspondiente al modo elegido (Wi-Fi, Ethernet/USB o Bluetooth PAN), y debes introducir la IPv4 correcta del adaptador del PC. Si no detecta la interfaz, activa ese tipo de conexión y vuelve a intentarlo. USB y Bluetooth usan anclaje de red (RNDIS/PAN): Nexora aún no funciona como dispositivo USB HID ni Bluetooth HID/RFCOMM directo.
 
 ### Wi-Fi
 1. Conecta el PC y el teléfono a la misma red Wi-Fi.
