@@ -18,6 +18,10 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - Modo teclado opcional para PPSSPP cuando no hay controlador virtual, sin instalar drivers adicionales.
 - Compilaciones APK y EXE y pruebas automáticas en GitHub Actions.
 
+## Primera prueba
+
+Consulta la [guía paso a paso en español](TESTING.md) para descargar los artefactos de Actions y probar primero Wi-Fi con PPSSPP, y después USB/Bluetooth PAN.
+
 ## Componentes
 - `android/`: aplicación Android.
 - `windows/`: receptor Windows ([guía de instalación y uso](windows/README.md)).
