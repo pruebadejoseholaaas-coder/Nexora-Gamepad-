@@ -477,6 +477,19 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun openControllerSocket(network: Network?): DatagramSocket {
+        val controllerSocket = DatagramSocket(null)
+        try {
+            if (network != null) network.bindSocket(controllerSocket)
+            controllerSocket.bind(InetSocketAddress(0))
+            controllerSocket.soTimeout = 500
+            return controllerSocket
+        } catch (error: Exception) {
+            controllerSocket.close()
+            throw error
+        }
+    }
+
     private fun connectToPc() {
         val candidate=ipField.text.toString().trim()
         val resolvedAddress = parseIpv4(candidate)
@@ -484,12 +497,8 @@ class MainActivity : Activity() {
         val enteredCode = codeField.text.toString().trim()
         if (!enteredCode.matches(Regex("\\d{6}"))) { status.text="● INTRODUCE EL CÓDIGO DE 6 DÍGITOS"; return }
         val selectedNetwork = try { findSelectedNetwork() } catch (_: Exception) { null }
-        if (selectedNetwork == null) {
-            status.text = when (transport) {
-                "USB" -> "● ACTIVA ANCLAJE USB Y REINTENTA"
-                "BLUETOOTH" -> "● ACTIVA ANCLAJE BLUETOOTH Y REINTENTA"
-                else -> "● CONÉCTATE A UNA RED WI-FI"
-            }
+        if (selectedNetwork == null && transport == "WIFI") {
+            status.text = "● CONÉCTATE A UNA RED WI-FI"
             return
         }
         disconnect(null); host=candidate; hostAddress=resolvedAddress; pairingCode=enteredCode
@@ -497,18 +506,25 @@ class MainActivity : Activity() {
         running=true
         rejectedByServer=false
         lastHelloAt=0L
+        var usedSystemRoute = selectedNetwork == null
         try {
-            val networkSocket = DatagramSocket(null)
-            selectedNetwork.bindSocket(networkSocket)
-            networkSocket.bind(InetSocketAddress(0))
-            networkSocket.soTimeout = 500
-            socket = networkSocket
+            socket = try {
+                openControllerSocket(selectedNetwork)
+            } catch (networkError: Exception) {
+                if (transport == "WIFI") throw networkError
+                // Some Android builds do not expose tethering interfaces through ConnectivityManager.
+                // Let the OS route to the explicitly entered local PC address as a compatibility fallback.
+                usedSystemRoute = true
+                openControllerSocket(null)
+            }
         } catch (_: Exception) {
             running = false
-            status.text = "● NO SE PUDO ABRIR LA RED SELECCIONADA"
+            status.text = "● NO SE PUDO ABRIR LA CONEXIÓN"
+            connectButton.text = "CONECTAR"
             return
         }
-        status.text="● BUSCANDO PC..."; connectButton.text="BUSCANDO..."
+        status.text = if (usedSystemRoute) "● BUSCANDO PC (RUTA DEL SISTEMA)..." else "● BUSCANDO PC..."
+        connectButton.text="BUSCANDO..."
         thread(name="Nexora-Receiver") {
             val buffer=ByteArray(1024)
             while (running) {
