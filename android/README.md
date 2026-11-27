@@ -31,7 +31,7 @@ Los nombres de los menús pueden variar según la marca y la versión de Android
 El receptor Windows muestra un código temporal de seis dígitos. Introdúcelo en cada teléfono que quieras conectar. Se permiten hasta cuatro teléfonos por sesión y todos comparten el mismo mando del PC; los botones se combinan y los ejes se mezclan usando el valor de mayor magnitud. Los intentos incorrectos se limitan por dirección IP durante una ventana temporal para dificultar pruebas repetidas del código.
 
 ## Controles y perfiles
-- Botones A/B/X/Y, cruceta, hombros, gatillos y sticks.
+- Botones A/B/X/Y, cruceta, hombros, gatillos y sticks. Los controles táctiles gestionan varios dedos y liberan cada botón o stick al levantar su propio dedo, evitando entradas atascadas.
 - Perfiles locales: General, PPSSPP, Acción y Personal.
 - Cada perfil guarda su propia sensibilidad, zona muerta, diseño Xbox/Nintendo y asignación personalizada de controles.
 - Puedes alternar entre diseño Xbox y Nintendo; cambian las asignaciones predeterminadas.
