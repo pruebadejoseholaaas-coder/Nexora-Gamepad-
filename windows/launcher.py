@@ -109,7 +109,7 @@ class NexoraLauncher:
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         try:
             self.process = subprocess.Popen(
-                command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="replace", bufsize=1,
                 creationflags=creationflags, env=env
             )
@@ -144,13 +144,19 @@ class NexoraLauncher:
 
     def terminate_process(self, process):
         try:
-            process.terminate()
+            if process.stdin is not None:
+                process.stdin.write("quit\\n")
+                process.stdin.flush()
+                process.stdin.close()
             process.wait(timeout=3)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
-        except OSError:
-            pass
+        except (OSError, BrokenPipeError):
+            try:
+                process.kill()
+            except OSError:
+                pass
 
     def process_events(self):
         try:
@@ -177,8 +183,11 @@ class NexoraLauncher:
         process = self.process
         if process is not None and process.poll() is None:
             try:
-                process.terminate()
-                process.wait(timeout=2)
+                if process.stdin is not None:
+                    process.stdin.write("quit\\n")
+                    process.stdin.flush()
+                    process.stdin.close()
+                process.wait(timeout=3)
             except Exception:
                 try:
                     process.kill()
