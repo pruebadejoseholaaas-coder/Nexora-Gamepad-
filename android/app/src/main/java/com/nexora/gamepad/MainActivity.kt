@@ -2,6 +2,9 @@ package com.nexora.gamepad
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.graphics.Canvas
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -27,6 +30,7 @@ import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -458,18 +462,52 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun findSelectedNetwork(): Network? {
+        val connectivity = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val requiredTransport = when (transport) {
+            "USB" -> NetworkCapabilities.TRANSPORT_ETHERNET
+            "BLUETOOTH" -> NetworkCapabilities.TRANSPORT_BLUETOOTH
+            else -> NetworkCapabilities.TRANSPORT_WIFI
+        }
+        return connectivity.allNetworks.firstOrNull { network ->
+            val capabilities = connectivity.getNetworkCapabilities(network)
+            capabilities != null &&
+                capabilities.hasTransport(requiredTransport) &&
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        }
+    }
+
     private fun connectToPc() {
         val candidate=ipField.text.toString().trim()
         val resolvedAddress = parseIpv4(candidate)
         if (resolvedAddress == null) { status.text="● INTRODUCE UNA IPv4 VÁLIDA"; return }
         val enteredCode = codeField.text.toString().trim()
         if (!enteredCode.matches(Regex("\\d{6}"))) { status.text="● INTRODUCE EL CÓDIGO DE 6 DÍGITOS"; return }
+        val selectedNetwork = try { findSelectedNetwork() } catch (_: Exception) { null }
+        if (selectedNetwork == null) {
+            status.text = when (transport) {
+                "USB" -> "● ACTIVA ANCLAJE USB Y REINTENTA"
+                "BLUETOOTH" -> "● ACTIVA ANCLAJE BLUETOOTH Y REINTENTA"
+                else -> "● CONÉCTATE A UNA RED WI-FI"
+            }
+            return
+        }
         disconnect(null); host=candidate; hostAddress=resolvedAddress; pairingCode=enteredCode
         getSharedPreferences("nexora_settings", MODE_PRIVATE).edit().putString("pc_ip", host).apply()
         running=true
         rejectedByServer=false
         lastHelloAt=0L
-        try { socket=DatagramSocket().apply { soTimeout=500 } } catch (_: Exception) { running=false; status.text="● ERROR AL ABRIR RED"; return }
+        try {
+            val networkSocket = DatagramSocket(null)
+            selectedNetwork.bindSocket(networkSocket)
+            networkSocket.bind(InetSocketAddress(0))
+            networkSocket.soTimeout = 500
+            socket = networkSocket
+        } catch (_: Exception) {
+            running = false
+            status.text = "● NO SE PUDO ABRIR LA RED SELECCIONADA"
+            return
+        }
         status.text="● BUSCANDO PC..."; connectButton.text="BUSCANDO..."
         thread(name="Nexora-Receiver") {
             val buffer=ByteArray(1024)
