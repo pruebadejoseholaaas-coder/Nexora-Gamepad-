@@ -8,6 +8,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 from tkinter import ttk
 
@@ -212,6 +213,83 @@ class NexoraLauncher:
         self.root.destroy()
 
 
+def packaged_self_test(receiver):
+    """Exercise the packaged GUI runtime and the bundled receiver lifecycle."""
+    try:
+        test_root = tk.Tk()
+        test_root.withdraw()
+        test_root.update_idletasks()
+        test_root.destroy()
+    except Exception as exc:
+        raise SystemExit("No se pudo iniciar Tcl/Tk: " + str(exc))
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        process = subprocess.Popen(
+            [receiver, "--mode", "diagnostic"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            creationflags=creationflags,
+            env=env,
+        )
+    except OSError as exc:
+        raise SystemExit("No se pudo iniciar el receptor empaquetado: " + str(exc))
+
+    output = queue.Queue()
+
+    def collect_output():
+        if process.stdout is not None:
+            for line in process.stdout:
+                output.put(line.rstrip())
+
+    reader = threading.Thread(target=collect_output, daemon=True)
+    reader.start()
+    listening = False
+    pairing_code_found = False
+    deadline = time.monotonic() + 12
+    try:
+        while time.monotonic() < deadline:
+            try:
+                line = output.get(timeout=0.25)
+            except queue.Empty:
+                if process.poll() is not None:
+                    break
+                continue
+            if "Nexora Gamepad escucha en UDP" in line:
+                listening = True
+            if "Código de emparejamiento" in line:
+                code = line.rsplit(":", 1)[-1].strip()
+                pairing_code_found = len(code) == 6 and code.isdigit()
+            if listening and pairing_code_found:
+                break
+
+        if not listening or not pairing_code_found:
+            raise SystemExit("El receptor no inició el servidor UDP o no generó el código de emparejamiento.")
+
+        if process.stdin is not None:
+            process.stdin.write("quit\\n")
+            process.stdin.flush()
+            process.stdin.close()
+        try:
+            exit_code = process.wait(timeout=4)
+        except subprocess.TimeoutExpired:
+            raise SystemExit("El receptor no se cerró correctamente durante la prueba.")
+        if exit_code != 0:
+            raise SystemExit("El receptor terminó con código " + str(exit_code) + ".")
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+
+
 def main():
     if "--self-test" in sys.argv:
         if getattr(sys, "frozen", False):
@@ -221,6 +299,7 @@ def main():
         receiver = os.path.join(base, "NexoraReceiver.exe")
         if not os.path.isfile(receiver):
             raise SystemExit("No se encontró NexoraReceiver.exe dentro del paquete.")
+        packaged_self_test(receiver)
         return
     root = tk.Tk()
     NexoraLauncher(root)
