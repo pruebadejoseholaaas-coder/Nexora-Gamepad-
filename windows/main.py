@@ -269,6 +269,13 @@ def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120
     }
 
 
+def requested_mode_from_args(arguments):
+    """Return a validated launcher mode, or None for legacy interactive startup."""
+    if len(arguments) >= 3 and arguments[1] == "--mode" and arguments[2] in ("auto", "keyboard", "diagnostic"):
+        return arguments[2]
+    return None
+
+
 def main():
     requested_mode = requested_mode_from_args(sys.argv)
     shutdown_event = threading.Event()
