@@ -273,6 +273,18 @@ def main():
     requested_mode = None
     if len(sys.argv) >= 3 and sys.argv[1] == "--mode" and sys.argv[2] in ("auto", "keyboard", "diagnostic"):
         requested_mode = sys.argv[2]
+    shutdown_event = threading.Event()
+    if requested_mode is not None:
+        def watch_shutdown_stdin():
+            try:
+                for line in sys.stdin:
+                    if line.strip().lower() in ("quit", "exit", "stop"):
+                        shutdown_event.set()
+                        return
+            finally:
+                shutdown_event.set()
+        threading.Thread(target=watch_shutdown_stdin, name="Nexora-Shutdown", daemon=True).start()
+
     pad = None
     keyboard_mode = False
     if GAMEPAD_AVAILABLE and requested_mode not in ("keyboard", "diagnostic"):
@@ -283,8 +295,12 @@ def main():
             print("No se pudo iniciar el mando virtual.")
             print("Revisa que exista un controlador virtual compatible.")
             print("Detalle:", exc)
-    else:
-        print("Biblioteca vgamepad no disponible: modo diagnóstico.")
+    elif requested_mode == "keyboard":
+        print("Modo teclado seleccionado desde la interfaz.")
+    elif requested_mode == "diagnostic":
+        print("Modo diagnóstico seleccionado desde la interfaz.")
+    elif not GAMEPAD_AVAILABLE:
+        print("Biblioteca vgamepad no disponible.")
     if pad is None:
         if requested_mode == "keyboard":
             keyboard_mode = True
@@ -338,7 +354,7 @@ def main():
     previous_keyboard = set()
     last_notice = 0.0
     try:
-        while True:
+        while not shutdown_event.is_set():
             try:
                 raw, address = sock.recvfrom(MAX_PACKET_BYTES)
                 # recvfrom truncates oversized UDP datagrams; never parse a truncated JSON packet.
