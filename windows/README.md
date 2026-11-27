@@ -4,16 +4,17 @@
 El receptor recibe por UDP los controles enviados por los teléfonos Android, combina hasta cuatro teléfonos y los presenta como un único mando compartido. Escucha en el puerto **26760**.
 
 ## Primera ejecución
-1. Descarga y extrae `NexoraGamepad.exe` desde los artefactos de GitHub Actions o desde una versión publicada.
-2. Ejecuta el archivo en Windows.
-3. Si Windows Firewall pregunta, permite el acceso únicamente en redes privadas y de confianza.
-4. El receptor mostrará un código temporal de seis dígitos y las direcciones IPv4 disponibles.
-5. En Android, introduce la IPv4 del adaptador de red que comparte conexión con el teléfono y el código mostrado en Windows.
-6. Mantén abierto el receptor mientras utilizas el mando.
+1. Descarga `NexoraGamepad.exe` desde los artefactos de GitHub Actions o desde una versión publicada.
+2. Ejecuta el archivo en Windows. La aplicación abre una ventana para iniciar y detener el receptor, elegir el modo de entrada y consultar el código de emparejamiento.
+3. Elige **Automático** para intentar XInput, **Teclado** para usar PPSSPP o **Diagnóstico** para comprobar la conexión sin controlar un juego.
+4. Si Windows Firewall pregunta, permite el acceso únicamente en redes privadas y de confianza.
+5. Cuando el receptor esté iniciado, mostrará un código temporal de seis dígitos y las direcciones IPv4 disponibles.
+6. En Android, introduce la IPv4 del adaptador de red que comparte conexión con el teléfono y el código mostrado en Windows.
+7. Pulsa **Detener** en Nexora cuando termines.
 
 ## Modos de control
 - **XInput:** se activa si `vgamepad` puede crear el mando virtual y hay un controlador virtual compatible instalado. No se instala ningún controlador automáticamente.
-- **Teclado:** si XInput no está disponible, puedes activar el modo teclado cuando el receptor lo pregunte. Consulta [PPSSPP.md](PPSSPP.md) para ver las teclas y configurar PPSSPP.
+- **Teclado:** selecciona el modo teclado en la ventana antes de iniciar. Consulta [PPSSPP.md](PPSSPP.md) para ver las teclas y configurar PPSSPP.
 - **Diagnóstico:** si no activas teclado y XInput no está disponible, el receptor recibe paquetes pero no envía controles al juego.
 
 El backend actual usa `vgamepad`. Su funcionamiento depende de un controlador virtual compatible; ViGEmBus está archivado y no se distribuye con Nexora. El modo teclado es la alternativa que no necesita ese controlador.
