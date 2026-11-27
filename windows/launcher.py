@@ -145,7 +145,7 @@ class NexoraLauncher:
     def terminate_process(self, process):
         try:
             if process.stdin is not None:
-                process.stdin.write("quit\\n")
+                process.stdin.write("quit\n")
                 process.stdin.flush()
                 process.stdin.close()
             process.wait(timeout=3)
@@ -184,7 +184,7 @@ class NexoraLauncher:
         if process is not None and process.poll() is None:
             try:
                 if process.stdin is not None:
-                    process.stdin.write("quit\\n")
+                    process.stdin.write("quit\n")
                     process.stdin.flush()
                     process.stdin.close()
                 process.wait(timeout=3)
