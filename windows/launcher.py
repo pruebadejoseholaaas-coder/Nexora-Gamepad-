@@ -3,8 +3,10 @@
 The UI owns the receiver process and displays its pairing code and network log.
 No account, cloud service, or telemetry is used.
 """
+import json
 import os
 import queue
+import socket
 import subprocess
 import sys
 import threading
@@ -253,8 +255,10 @@ def packaged_self_test(receiver):
     reader = threading.Thread(target=collect_output, daemon=True)
     reader.start()
     listening = False
-    pairing_code_found = False
+    pairing_code = None
     deadline = time.monotonic() + 12
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client.settimeout(2)
     try:
         while time.monotonic() < deadline:
             try:
@@ -266,16 +270,38 @@ def packaged_self_test(receiver):
             if "Nexora Gamepad escucha en UDP" in line:
                 listening = True
             if "Código de emparejamiento" in line:
-                code = line.rsplit(":", 1)[-1].strip()
-                pairing_code_found = len(code) == 6 and code.isdigit()
-            if listening and pairing_code_found:
+                candidate = line.rsplit(":", 1)[-1].strip()
+                if len(candidate) == 6 and candidate.isdigit():
+                    pairing_code = candidate
+            if listening and pairing_code is not None:
                 break
 
-        if not listening or not pairing_code_found:
+        if not listening or pairing_code is None:
             raise SystemExit("El receptor no inició el servidor UDP o no generó el código de emparejamiento.")
 
+        endpoint = ("127.0.0.1", 26760)
+        hello = {"type": "hello", "version": 1, "code": pairing_code}
+        client.sendto(json.dumps(hello).encode("utf-8"), endpoint)
+        response, _ = client.recvfrom(4096)
+        hello_ack = json.loads(response.decode("utf-8"))
+        if hello_ack.get("type") != "hello_ack":
+            raise SystemExit("El receptor no confirmó el emparejamiento UDP.")
+
+        state = {
+            "type": "input",
+            "version": 1,
+            "code": pairing_code,
+            "buttons": ["A"],
+            "axes": {"leftX": 0.25, "leftY": -0.5},
+        }
+        client.sendto(json.dumps(state).encode("utf-8"), endpoint)
+        response, _ = client.recvfrom(4096)
+        input_ack = json.loads(response.decode("utf-8"))
+        if input_ack.get("type") != "input_ack":
+            raise SystemExit("El receptor no confirmó el paquete de controles.")
+
         if process.stdin is not None:
-            process.stdin.write("quit\n")
+            process.stdin.write("quit\\n")
             process.stdin.flush()
             process.stdin.close()
         try:
@@ -284,10 +310,14 @@ def packaged_self_test(receiver):
             raise SystemExit("El receptor no se cerró correctamente durante la prueba.")
         if exit_code != 0:
             raise SystemExit("El receptor terminó con código " + str(exit_code) + ".")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise SystemExit("Falló la prueba de comunicación UDP: " + str(exc))
     finally:
+        client.close()
         if process.poll() is None:
             process.kill()
             process.wait()
+
 
 
 def main():
