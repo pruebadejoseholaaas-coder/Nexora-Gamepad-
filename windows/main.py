@@ -270,6 +270,9 @@ def build_rumble_message(pairing_code, large_motor, small_motor, duration_ms=120
 
 
 def main():
+    requested_mode = None
+    if len(sys.argv) >= 3 and sys.argv[1] == "--mode" and sys.argv[2] in ("auto", "keyboard", "diagnostic"):
+        requested_mode = sys.argv[2]
     pad = None
     keyboard_mode = False
     if GAMEPAD_AVAILABLE:
@@ -283,11 +286,16 @@ def main():
     else:
         print("Biblioteca vgamepad no disponible: modo diagnóstico.")
     if pad is None:
-        try:
-            answer = input("¿Activar modo teclado para PPSSPP? [s/N]: ").strip().lower()
-            keyboard_mode = answer in ("s", "si", "sí", "y", "yes")
-        except EOFError:
+        if requested_mode == "keyboard":
+            keyboard_mode = True
+        elif requested_mode in ("auto", "diagnostic"):
             keyboard_mode = False
+        else:
+            try:
+                answer = input("¿Activar modo teclado para PPSSPP? [s/N]: ").strip().lower()
+                keyboard_mode = answer in ("s", "si", "sí", "y", "yes")
+            except EOFError:
+                keyboard_mode = False
         if keyboard_mode:
             print("Modo teclado activo. Usa PPSSPP en primer plano y configura sus teclas según windows/PPSSPP.md.")
         else:
