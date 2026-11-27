@@ -263,5 +263,15 @@ class ProtocolTests(unittest.TestCase):
             "type": "input", "version": 1, "buttons": [], "axes": {str(i): i for i in range(17)}
         }))
 
+
+    def test_requested_mode_accepts_supported_launcher_modes(self):
+        for mode in ("auto", "keyboard", "diagnostic"):
+            self.assertEqual(main.requested_mode_from_args(["main.py", "--mode", mode]), mode)
+
+    def test_requested_mode_rejects_unknown_or_incomplete_arguments(self):
+        self.assertIsNone(main.requested_mode_from_args(["main.py", "--mode", "admin"]))
+        self.assertIsNone(main.requested_mode_from_args(["main.py", "--mode"]))
+        self.assertIsNone(main.requested_mode_from_args(["main.py"]))
+
 if __name__ == "__main__":
     unittest.main()
