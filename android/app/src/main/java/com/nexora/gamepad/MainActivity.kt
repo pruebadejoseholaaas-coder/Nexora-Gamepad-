@@ -361,18 +361,34 @@ class MainActivity : Activity() {
     private fun controlButton(label: String, key: String) = Button(this).apply {
         text = label; textSize = 13f
         if (key in mappableButtons) controlButtons[key] = Pair(label, this)
+        var activePointerId = -1
+        fun setPressedState(isPressed: Boolean) {
+            synchronized(lock) {
+                if (key == "LT") axes["leftTrigger"] = if (isPressed) 1.0 else 0.0
+                else if (key == "RT") axes["rightTrigger"] = if (isPressed) 1.0 else 0.0
+                else if (isPressed) pressed.add(key) else pressed.remove(key)
+            }
+        }
         setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> { synchronized(lock) {
-                    if (key == "LT") axes["leftTrigger"] = 1.0
-                    else if (key == "RT") axes["rightTrigger"] = 1.0
-                    else pressed.add(key)
-                }; vibrateTap(); true }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { synchronized(lock) {
-                    if (key == "LT") axes["leftTrigger"] = 0.0
-                    else if (key == "RT") axes["rightTrigger"] = 0.0
-                    else pressed.remove(key)
-                }; true }
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    activePointerId = event.getPointerId(0)
+                    setPressedState(true)
+                    vibrateTap()
+                    true
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    if (event.getPointerId(event.actionIndex) == activePointerId) {
+                        setPressedState(false)
+                        activePointerId = -1
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (activePointerId != -1) setPressedState(false)
+                    activePointerId = -1
+                    true
+                }
                 else -> true
             }
         }
@@ -383,27 +399,48 @@ class MainActivity : Activity() {
         private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(100,125,155); style = Paint.Style.STROKE; strokeWidth = 5f }
         private val knob = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(30,170,220) }
         private var nx = 0f; private var ny = 0f
+        private var activePointerId = -1
+        private fun updateFromPointer(event: MotionEvent, pointerIndex: Int) {
+            val cx = width / 2f; val cy = height / 2f; val r = min(width, height) * 0.39f
+            val rawX = ((event.getX(pointerIndex) - cx) / r).coerceIn(-1f, 1f)
+            val rawY = ((event.getY(pointerIndex) - cy) / r).coerceIn(-1f, 1f)
+            fun tune(value: Float): Float {
+                val magnitude = kotlin.math.abs(value)
+                if (magnitude <= stickDeadzone) return 0f
+                val adjusted = ((magnitude - stickDeadzone) / (1f - stickDeadzone)).coerceIn(0f, 1f)
+                return (kotlin.math.sign(value) * adjusted * stickSensitivity).coerceIn(-1f, 1f)
+            }
+            nx = tune(rawX); ny = tune(rawY)
+            synchronized(lock) { axes[xName] = nx.toDouble(); axes[yName] = ny.toDouble() }
+            invalidate()
+        }
+        private fun resetStick() {
+            activePointerId = -1
+            nx = 0f; ny = 0f
+            synchronized(lock) { axes[xName] = 0.0; axes[yName] = 0.0 }
+            invalidate()
+        }
         override fun onDraw(canvas: Canvas) {
             val cx = width/2f; val cy = height/2f; val r = min(width,height)*0.39f
             canvas.drawCircle(cx,cy,r,base); canvas.drawCircle(cx,cy,r,ring)
             canvas.drawCircle(cx+nx*r*0.68f,cy+ny*r*0.68f,r*0.36f,knob)
         }
         override fun onTouchEvent(event: MotionEvent): Boolean {
-            val cx=width/2f; val cy=height/2f; val r=min(width,height)*0.39f
-            if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) { nx=0f; ny=0f }
-            else {
-                val rawX=((event.x-cx)/r).coerceIn(-1f,1f)
-                val rawY=((event.y-cy)/r).coerceIn(-1f,1f)
-                fun tune(value: Float): Float {
-                    val magnitude = kotlin.math.abs(value)
-                    if (magnitude <= stickDeadzone) return 0f
-                    val adjusted = ((magnitude - stickDeadzone) / (1f - stickDeadzone)).coerceIn(0f,1f)
-                    return (kotlin.math.sign(value) * adjusted * stickSensitivity).coerceIn(-1f,1f)
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    activePointerId = event.getPointerId(0)
+                    updateFromPointer(event, 0)
                 }
-                nx=tune(rawX); ny=tune(rawY)
+                MotionEvent.ACTION_MOVE -> {
+                    val index = event.findPointerIndex(activePointerId)
+                    if (index >= 0) updateFromPointer(event, index)
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    if (event.getPointerId(event.actionIndex) == activePointerId) resetStick()
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> resetStick()
             }
-            synchronized(lock) { axes[xName]=nx.toDouble(); axes[yName]=ny.toDouble() }
-            invalidate(); return true
+            return true
         }
     }
 
