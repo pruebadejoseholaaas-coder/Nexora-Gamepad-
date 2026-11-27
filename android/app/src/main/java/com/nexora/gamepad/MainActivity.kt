@@ -109,7 +109,7 @@ class MainActivity : Activity() {
             setHintTextColor(Color.LTGRAY)
         }
         root.addView(codeField, LinearLayout.LayoutParams(-1, 36))
-        root.addView(TextView(this).apply { text = "Elige cómo conectar el teléfono al PC"; textSize = 10f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
+        root.addView(TextView(this).apply { text = "Elige la red que usarán el teléfono y el PC (UDP)"; textSize = 10f; setTextColor(Color.LTGRAY); gravity = Gravity.CENTER })
         val transportRow = LinearLayout(this).apply { gravity = Gravity.CENTER }
         val transportOptions = listOf("WIFI" to "WI-FI", "USB" to "USB", "BLUETOOTH" to "BLUETOOTH")
         transportOptions.forEach { (key, label) ->
@@ -337,9 +337,9 @@ class MainActivity : Activity() {
     private fun updateTransportHelp() {
         if (!::transportHelp.isInitialized) return
         transportHelp.text = when (transport) {
-            "USB" -> "USB: conecta el cable y activa Anclaje USB en Android."
-            "BLUETOOTH" -> "Bluetooth: empareja el PC y activa Anclaje Bluetooth."
-            else -> "Wi-Fi: ambos equipos deben usar la misma red local."
+            "USB" -> "USB: conecta el cable, activa Anclaje USB y usa en el PC la IPv4 del adaptador USB."
+            "BLUETOOTH" -> "Bluetooth: empareja ambos equipos, activa Anclaje Bluetooth/PAN y usa la IPv4 del adaptador Bluetooth en el PC."
+            else -> "Wi-Fi: conecta ambos equipos a la misma red local y usa la IPv4 del PC."
         }
         transportButtons.forEach { (key, button) ->
             val selected = key == transport
