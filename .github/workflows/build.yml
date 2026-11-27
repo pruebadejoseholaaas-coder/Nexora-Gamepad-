@@ -71,6 +71,9 @@ jobs:
       - name: Build Windows desktop launcher
         shell: pwsh
         run: pyinstaller --onefile --windowed --name NexoraGamepad --add-binary "dist/NexoraReceiver.exe;." windows/launcher.py
+      - name: Smoke-test packaged Windows launcher
+        shell: pwsh
+        run: .\dist\NexoraGamepad.exe --self-test
       - uses: actions/upload-artifact@v4
         with:
           name: Nexora-Gamepad-Windows
