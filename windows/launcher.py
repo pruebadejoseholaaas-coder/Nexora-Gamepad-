@@ -211,6 +211,16 @@ class NexoraLauncher:
 
 
 def main():
+    if "--self-test" in sys.argv:
+        if getattr(sys, "frozen", False):
+            base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        else:
+            base = os.path.dirname(os.path.abspath(__file__))
+        receiver = os.path.join(base, "NexoraReceiver.exe")
+        if not os.path.isfile(receiver):
+            raise SystemExit("No se encontró NexoraReceiver.exe dentro del paquete.")
+        print("Paquete Nexora Gamepad correcto: receptor incluido.")
+        return
     root = tk.Tk()
     NexoraLauncher(root)
     root.mainloop()
