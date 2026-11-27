@@ -25,10 +25,10 @@ Convierte uno o varios teléfonos Android en un mando táctil para Windows media
 - `.github/workflows/`: compilaciones y pruebas.
 
 ## Pendiente antes de considerarla terminada
-- Integrar y validar un backend XInput moderno opcional. HIDMaestro es una alternativa MIT prometedora, pero requiere instalación de componentes de controlador con privilegios de administrador y aún debe pasar una revisión de compatibilidad, seguridad y experiencia de desinstalación antes de incorporarse. El modo teclado sigue disponible como alternativa.
+- Integrar y validar un backend XInput moderno opcional. HIDMaestro tiene licencia MIT, pero su instalación implica componentes de controlador y requiere revisar la experiencia de permisos, instalación y desinstalación antes de adoptarlo.
+- Validar la interfaz gráfica de Windows y el cierre ordenado en equipos reales.
 - Validar la conexión real en Wi-Fi, USB tethering y Bluetooth PAN en distintos equipos.
 - Validar controles, reconexión y vibración con teléfonos y juegos reales.
-- Integrar y validar un backend XInput moderno opcional. HIDMaestro tiene licencia MIT, pero su instalación implica componentes de controlador y requiere revisar la experiencia de permisos, instalación y desinstalación antes de adoptarlo.
 
 ## Seguridad y privacidad
 No necesita cuenta, anuncios ni nube. El receptor genera un código temporal de seis dígitos. Hasta cuatro teléfonos pueden emparejarse con el mismo código durante la sesión; cada conexión se identifica por IP y puerto, y se elimina de forma independiente cuando deja de enviar datos y supera el tiempo de espera. Los intentos incorrectos de código se limitan por IP. El código se envía por UDP sin cifrado: es una protección básica para redes domésticas, no seguridad criptográfica. Usa una red de confianza, no compartas el código y no expongas el puerto UDP 26760 a Internet. Autoriza el firewall solo en redes privadas.
