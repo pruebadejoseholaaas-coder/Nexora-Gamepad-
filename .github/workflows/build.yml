@@ -64,8 +64,11 @@ jobs:
           pip install pyinstaller
       - name: Test Windows receiver
         run: python -m unittest discover -s windows -p "test_*.py"
-      - name: Build executable
-        run: pyinstaller --onefile --name NexoraGamepad windows/main.py
+      - name: Build Windows receiver
+        run: pyinstaller --onefile --console --name NexoraReceiver windows/main.py
+      - name: Build Windows desktop launcher
+        shell: pwsh
+        run: pyinstaller --onefile --windowed --name NexoraGamepad --add-binary "dist/NexoraReceiver.exe;." windows/launcher.py
       - uses: actions/upload-artifact@v4
         with:
           name: Nexora-Gamepad-Windows
