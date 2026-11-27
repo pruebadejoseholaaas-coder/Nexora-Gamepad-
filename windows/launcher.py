@@ -275,7 +275,7 @@ def packaged_self_test(receiver):
             raise SystemExit("El receptor no inició el servidor UDP o no generó el código de emparejamiento.")
 
         if process.stdin is not None:
-            process.stdin.write("quit\\n")
+            process.stdin.write("quit\n")
             process.stdin.flush()
             process.stdin.close()
         try:
