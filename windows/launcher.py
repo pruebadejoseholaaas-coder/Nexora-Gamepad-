@@ -61,7 +61,11 @@ class NexoraLauncher:
         pairing.pack(fill="x", pady=(2, 12))
         ttk.Label(pairing, text="CÓDIGO DE EMPAREJAMIENTO", style="Muted.TLabel").pack(anchor="w")
         self.code = tk.StringVar(value="------")
-        ttk.Label(pairing, textvariable=self.code, font=("Consolas", 27, "bold"), foreground="#60a5fa", background="#111827").pack(anchor="w")
+        code_row = ttk.Frame(pairing)
+        code_row.pack(anchor="w")
+        ttk.Label(code_row, textvariable=self.code, font=("Consolas", 27, "bold"), foreground="#60a5fa", background="#111827").pack(side="left")
+        self.copy_button = ttk.Button(code_row, text="Copiar código", command=self.copy_code, state="disabled")
+        self.copy_button.pack(side="left", padx=14)
         ttk.Label(pairing, text="Escribe este código y la IPv4 del PC en la aplicación Android.", style="Muted.TLabel").pack(anchor="w")
 
         ttk.Label(outer, text="Actividad y direcciones de red").pack(anchor="w")
@@ -87,6 +91,14 @@ class NexoraLauncher:
             code = line.rsplit(":", 1)[-1].strip()
             if len(code) == 6 and code.isdigit():
                 self.code.set(code)
+                self.copy_button.configure(state="normal")
+
+    def copy_code(self):
+        code = self.code.get()
+        if len(code) == 6 and code.isdigit():
+            self.root.clipboard_clear()
+            self.root.clipboard_append(code)
+            self.append_log("Código de emparejamiento copiado al portapapeles.")
 
     def receiver_command(self):
         mode = self.mode.get()
@@ -118,6 +130,7 @@ class NexoraLauncher:
             self.process = None
             return
         self.code.set("------")
+        self.copy_button.configure(state="disabled")
         self.status.configure(text="● INICIANDO", foreground="#fcd34d")
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
@@ -174,6 +187,7 @@ class NexoraLauncher:
                         self.stop_button.configure(state="disabled")
                         self.status.configure(text="● DETENIDO", foreground="#fca5a5")
                         self.code.set("------")
+                        self.copy_button.configure(state="disabled")
                     self.append_log("Receptor finalizado (código " + str(code) + ").")
         except queue.Empty:
             pass
