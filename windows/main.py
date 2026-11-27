@@ -275,7 +275,7 @@ def main():
         requested_mode = sys.argv[2]
     pad = None
     keyboard_mode = False
-    if GAMEPAD_AVAILABLE:
+    if GAMEPAD_AVAILABLE and requested_mode not in ("keyboard", "diagnostic"):
         try:
             pad = vg.VX360Gamepad()
             print("Mando virtual XInput preparado.")
