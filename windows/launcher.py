@@ -118,6 +118,8 @@ class NexoraLauncher:
             return
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
+        # Keep Spanish status/log messages readable through the Windows pipe.
+        env["PYTHONIOENCODING"] = "utf-8"
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         try:
             self.process = subprocess.Popen(
