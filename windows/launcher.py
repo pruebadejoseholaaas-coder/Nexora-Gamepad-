@@ -219,7 +219,6 @@ def main():
         receiver = os.path.join(base, "NexoraReceiver.exe")
         if not os.path.isfile(receiver):
             raise SystemExit("No se encontró NexoraReceiver.exe dentro del paquete.")
-        print("Paquete Nexora Gamepad correcto: receptor incluido.")
         return
     root = tk.Tk()
     NexoraLauncher(root)
