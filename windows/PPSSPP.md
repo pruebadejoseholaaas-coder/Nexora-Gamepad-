@@ -5,8 +5,8 @@ Nexora Gamepad incluye un modo alternativo de teclado para usar el teléfono con
 ## Activarlo
 
 1. Ejecuta `NexoraGamepad.exe` en Windows.
-2. Si el mando virtual no está disponible, el receptor pregunta si deseas activar el modo teclado.
-3. Responde `s` para activarlo.
+2. Antes de iniciar el receptor, selecciona **Teclado (ideal para PPSSPP)** en la ventana de Nexora.
+3. Pulsa **Iniciar receptor**.
 4. Abre PPSSPP y déjalo en primer plano.
 5. En PPSSPP, entra en **Ajustes > Controles > Asignación de controles** y asigna las teclas de esta tabla.
 
